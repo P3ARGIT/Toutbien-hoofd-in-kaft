@@ -189,17 +189,22 @@ def play(args):
 
         show_standby()
 
-        warming_up = not (args.beam or args.test)
-        deadline = time.monotonic() + PIR_WARMUP_SECONDS
+        warmup_left = 0
+        if not (args.beam or args.test):
+            uptime = time.clock_gettime(time.CLOCK_BOOTTIME)
+            warmup_left = max(0, PIR_WARMUP_SECONDS - uptime)
+        warming_up = warmup_left > 0
+        deadline = time.monotonic() + warmup_left
         triggered = video_playing = stable = candidate = simulated = False
         absent_since = None
         next_eof_check = 0
         changed_at = time.monotonic()
         if args.test:
             print("Enter = hoofd erin/eruit. Typ q en druk Enter om te stoppen.", flush=True)
+        elif warming_up:
+            print(f"PIR warmt nog {warmup_left:.0f} seconden op.", flush=True)
         else:
-            print("Standby. De PIR stabiliseert 60 seconden na start." if not args.beam else
-                  "Standby. Lichtsluis actief.", flush=True)
+            print(f"Sensor klaar. GPIO17 = {int(sensor.pin.state)}.", flush=True)
 
         while player.process.poll() is None:
             if args.test:
