@@ -4,6 +4,7 @@ import array
 from contextlib import ExitStack
 import fcntl
 import json
+import math
 import os
 from pathlib import Path
 import select
@@ -185,6 +186,14 @@ def play(args):
         image.save(screen, standby_image)
 
         player = Player(resources)
+        overlay = None
+
+        def update_standby(status, number=""):
+            nonlocal overlay
+            current = (status, number)
+            if current != overlay:
+                player.command("script-message-to", "controls", "toutbien-standby", *current)
+                overlay = current
 
         def show_standby():
             print("Standby", flush=True)
@@ -192,6 +201,7 @@ def play(args):
             standby.play(loops=-1)
 
         show_standby()
+        update_standby("idle")
 
         warmup_left = 0
         if not (args.beam or args.test):
@@ -268,6 +278,7 @@ def play(args):
 
             if video_at is not None and now >= video_at:
                 print("Video", flush=True)
+                update_standby("hidden")
                 standby.stop()
                 player.playback_failed = False
                 player.command("loadfile", str(VIDEO), "replace")
@@ -282,6 +293,13 @@ def play(args):
                     standby_at = time.monotonic() + BLACK_SECONDS
                     video_playing = False
                     triggered = False
+
+            if not video_playing and standby_at is None:
+                number = ""
+                if video_at is not None:
+                    seconds_left = min(READ_SECONDS, math.ceil(video_at - now))
+                    number = str(seconds_left)
+                update_standby("motion" if stable else "idle", number)
 
         if player.process.returncode != 0:
             raise RuntimeError(f"mpv is gestopt (exitcode {player.process.returncode}).")
