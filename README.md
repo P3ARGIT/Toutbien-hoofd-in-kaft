@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby is het scherm zwart en speelt de WAV continu door. Bij een actief sensorsignaal stopt het standbygeluid en start de productvideo met geluid vanaf het begin. Als de video uit is en het signaal nog actief blijft, blijft het laatste beeld staan. Zodra het signaal wegvalt, stopt de video en keert het standbygeluid terug.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Bij een actief sensorsignaal stopt het standbygeluid en start de productvideo met geluid vanaf het begin. In de laatste seconde fadet het beeld naar zwart. Daarna verschijnt de standbytitel en keert het geluid terug, ook als de sensor nog actief is. Na 20 seconden zonder sensorsignaal wordt de speler opnieuw gereed voor de volgende bezoeker. Als de video dan nog loopt, stopt hij en verschijnt standby.
 
 ## Aansluiten
 
@@ -42,10 +42,10 @@ Test vóór de eerste herstart eventueel zonder sensor vanuit een terminal op de
 python3 ~/.local/share/toutbien/player.py --test
 ~~~
 
-Druk Enter om de video te starten, en opnieuw Enter om terug naar standby te gaan. Typ **q** en druk Enter om te stoppen. Als de terminal achter het videovenster staat, gebruik je **Alt+Tab** om terug te schakelen. Start de normale modus daarna met **bash ~/.local/share/toutbien/start.sh**, of herstart de Pi. Het log staat standaard in **~/.local/state/toutbien/player.log**.
+Druk Enter om de video te starten en kijk of hij aan het einde naar standby terugkeert. Druk opnieuw Enter om het wegvallen van het signaal te simuleren. Na 20 seconden kun je een nieuwe weergave activeren. Typ **q** en druk Enter om te stoppen. Als de terminal achter het videovenster staat, gebruik je **Alt+Tab** om terug te schakelen. Start de normale modus daarna met **bash ~/.local/share/toutbien/start.sh**, of herstart de Pi. Het log staat standaard in **~/.local/state/toutbien/player.log**.
 
 ## Exacte aanwezigheidsdetectie met een lichtsluis
 
 Monteer een zender en ontvanger tegenover elkaar over de opening, op een plek waar het hoofd de straal onderbreekt. Gebruik een ontvanger met een **open-collector/open-drain-uitgang die bij een vrije straal naar GND trekt en bij onderbreking loslaat**. Verbind de uitgang met fysieke pin 11 en de massa van de ontvanger met pin 6. Voed zender en ontvanger volgens hun eigen specificaties. De Pi trekt de signaallijn intern naar 3,3 V. Controleer vóór aansluiten dat de ontvanger geen hogere spanning op de lijn zet, ook via een interne pull-up.
 
-Installeer vanuit de projectmap met **bash install.sh --beam** en herstart. In deze stand schakelt de speler zodra het signaal ongeveer 120 ms stabiel is. De lichtsluis blijft een stil hoofd detecteren zolang dat de straal onderbreekt.
+Installeer vanuit de projectmap met **bash install.sh --beam** en herstart. In deze stand start de video zodra de onderbreking ongeveer 120 ms stabiel is. De reset volgt na 20 seconden met een vrije straal. De lichtsluis blijft een stil hoofd detecteren zolang dat de straal onderbreekt.

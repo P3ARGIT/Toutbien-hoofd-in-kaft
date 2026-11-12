@@ -22,6 +22,7 @@ sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio
 
 install -d "$app_dir/audio" "$app_dir/video" "$autostart_dir"
 install -m 644 "$project_dir/player.py" "$app_dir/player.py"
+install -m 644 "$project_dir/fade.lua" "$app_dir/fade.lua"
 install -m 644 "$project_dir/audio/standbysound.wav" "$app_dir/audio/standbysound.wav"
 install -m 644 "$project_dir/video/productvideo.mp4" "$app_dir/video/productvideo.mp4"
 

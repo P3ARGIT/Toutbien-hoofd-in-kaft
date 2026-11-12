@@ -10,12 +10,15 @@ import select
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import wave
 
 ROOT = Path(__file__).resolve().parent
 VIDEO = ROOT / "video" / "productvideo.mp4"
 STANDBY = ROOT / "audio" / "standbysound.wav"
+TITLE = "sorry voor het ongemak sebiet"
+RESET_SECONDS = 20
 
 
 def standby_loop(path):
@@ -57,7 +60,9 @@ class Player:
                     "mpv", "--no-config", "--idle=yes", "--force-window=immediate",
                     "--fullscreen", "--no-osc", "--osd-level=0",
                     "--input-default-bindings=no", "--cursor-autohide=always",
-                    "--keep-open=yes", "--stop-screensaver=yes", "--input-terminal=no",
+                    "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
+                    "--stop-screensaver=yes", "--input-terminal=no",
+                    f"--script={ROOT / 'fade.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
                 ],
                 pass_fds=(fd,),
@@ -79,15 +84,17 @@ class Player:
         for line in self.replies:
             message = json.loads(line)
             if message.get("request_id") == 1:
+                if args == ("get_property", "eof-reached") and message["error"] == "property unavailable":
+                    return False
                 if message["error"] != "success":
                     raise RuntimeError(f"mpv {args[0]}: {message['error']}")
-                return
+                return message.get("data")
         raise RuntimeError("mpv heeft de verbinding gesloten.")
 
 
 def play(args):
     os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
-    from pygame import mixer
+    from pygame import Surface, font, image, mixer
 
     rate, channels, pcm = standby_loop(STANDBY)
     if not VIDEO.is_file():
@@ -118,12 +125,29 @@ def play(args):
         mixer.init(frequency=rate, size=-16, channels=channels, buffer=512, allowedchanges=0)
         resources.callback(mixer.quit)
         standby = mixer.Sound(buffer=pcm)
+        temporary = resources.enter_context(tempfile.TemporaryDirectory())
+        screen = Surface((1280, 720))
+        screen.fill((0, 0, 0))
+        font.init()
+        resources.callback(font.quit)
+        title = font.Font(None, 76).render(TITLE, True, (255, 255, 255))
+        screen.blit(title, title.get_rect(center=screen.get_rect().center))
+        standby_image = str(Path(temporary) / "standby.png")
+        image.save(screen, standby_image)
+
         player = Player(resources)
-        player.command("get_property", "idle-active")
-        standby.play(loops=-1)
+
+        def show_standby():
+            print("Standby", flush=True)
+            player.command("loadfile", standby_image, "replace")
+            standby.play(loops=-1)
+
+        show_standby()
 
         deadline = time.monotonic() + (0 if args.beam or args.test else 60)
-        playing = candidate = simulated = False
+        triggered = video_playing = stable = candidate = simulated = False
+        absent_since = None
+        next_eof_check = 0
         changed_at = time.monotonic()
         if args.test:
             print("Enter = hoofd erin/eruit. Typ q en druk Enter om te stoppen.", flush=True)
@@ -151,19 +175,32 @@ def play(args):
             if present != candidate:
                 candidate = present
                 changed_at = now
-            if candidate == playing or now - changed_at < 0.12:
-                continue
+            if candidate != stable and now - changed_at >= 0.12:
+                stable = candidate
+                if not stable:
+                    absent_since = changed_at
 
-            playing = candidate
-            if playing:
-                print("Video", flush=True)
-                standby.stop()
-                player.command("set_property", "pause", False)
-                player.command("loadfile", str(VIDEO), "replace")
-            else:
-                print("Standby", flush=True)
-                player.command("stop")
-                standby.play(loops=-1)
+            if absent_since is not None and now - absent_since >= RESET_SECONDS:
+                triggered = False
+                absent_since = None
+                if video_playing:
+                    show_standby()
+                    video_playing = False
+
+            if stable:
+                absent_since = None
+                if not triggered:
+                    print("Video", flush=True)
+                    standby.stop()
+                    player.command("loadfile", str(VIDEO), "replace")
+                    triggered = video_playing = True
+                    next_eof_check = now + 0.1
+
+            if video_playing and now >= next_eof_check:
+                next_eof_check = now + 0.1
+                if player.command("get_property", "eof-reached"):
+                    show_standby()
+                    video_playing = False
 
         raise RuntimeError(f"mpv is gestopt (exitcode {player.process.returncode}).")
 

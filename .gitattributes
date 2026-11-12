@@ -2,3 +2,4 @@
 *.py text eol=lf
 *.wav binary
 *.mp4 binary
+*.lua text eol=lf
