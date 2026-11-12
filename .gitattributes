@@ -1,0 +1,4 @@
+*.sh text eol=lf
+*.py text eol=lf
+*.wav binary
+*.mp4 binary
