@@ -16,11 +16,12 @@ esac
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 app_dir="$HOME/.local/share/toutbien"
 autostart_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 
 sudo apt-get update
-sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio
+sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs
 
-install -d "$app_dir/audio" "$app_dir/video" "$autostart_dir"
+install -d "$app_dir/audio" "$app_dir/video" "$autostart_dir" "$applications_dir"
 install -m 644 "$project_dir/player.py" "$app_dir/player.py"
 install -m 644 "$project_dir/fade.lua" "$app_dir/fade.lua"
 install -m 644 "$project_dir/audio/standbysound.wav" "$app_dir/audio/standbysound.wav"
@@ -35,13 +36,24 @@ exec /usr/bin/python3 "\$(dirname -- "\${BASH_SOURCE[0]}")/player.py"$mode >> "\
 EOF
 chmod 755 "$app_dir/start.sh"
 
-cat > "$autostart_dir/toutbien.desktop" <<EOF
+launcher="$applications_dir/toutbien.desktop"
+cat > "$launcher" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Toutbien expo-speler
+Icon=applications-multimedia
+Categories=AudioVideo;Player;
 Exec="$app_dir/start.sh"
 Terminal=false
 EOF
 
+install -m 644 "$launcher" "$autostart_dir/toutbien.desktop"
+
+desktop_dir="$(xdg-user-dir DESKTOP)"
+if [[ -n "$desktop_dir" && "$desktop_dir" != "$HOME" && -d "$desktop_dir" ]]; then
+    install -m 755 "$launcher" "$desktop_dir/Toutbien.desktop"
+fi
+
+echo "Open Toutbien expo-speler via het bureaublad of het toepassingenmenu."
 echo "Geïnstalleerd. De speler start automatisch bij de volgende desktoplogin."
 echo 'Direct starten vanuit een terminal op het Pi-bureaublad: bash ~/.local/share/toutbien/start.sh'

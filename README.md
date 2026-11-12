@@ -16,7 +16,7 @@ De module krijgt 5 V op VCC en levert volgens Velleman 0 V of circa 3 V op OUT. 
 
 Richt de PIR op de opening, weg van passerend publiek. Zet de gevoeligheid laag en de tijdinstelling op de kortste stand. Na starten negeert de speler de sensor 60 seconden terwijl standby al speelt. Een stil hoofd kan het bewegingssignaal laten wegvallen, en na vertrek blijft het signaal gedurende de ingestelde tijd nog hoog. Test daarom zowel met een stil hoofd als met iemand die langs het paneel loopt.
 
-Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Beide geluiden gebruiken de standaard audio-uitgang van de desktopsessie.
+Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Beide geluiden gebruiken de standaard audio-uitgang van de desktopsessie. De speler zet die uitgang bij het starten op 100% en heft dempen op.
 
 ## Installeren
 
@@ -34,6 +34,10 @@ Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh**
 
 Voor opstarten zonder toetsenbord kies je via **sudo raspi-config** voor **Desktop Autologin** en zet je **Screen Blanking** uit. Herstart daarna. [Raspberry Pi OS-instellingen](https://www.raspberrypi.com/documentation/computers/configuration.html)
 
+## Starten en afsluiten
+
+Dubbelklik op **Toutbien** op het bureaublad of kies **Toutbien expo-speler** in het toepassingenmenu onder **Geluid en video**. Verschijnt een vraag over het bureaubladbestand, kies **Uitvoeren**. Druk in het spelersvenster op **Q** of **Esc** om het scherm en geluid te sluiten. Automatisch opstarten bij de volgende desktoplogin blijft actief.
+
 ## Testen
 
 Test vóór de eerste herstart eventueel zonder sensor vanuit een terminal op de desktop. Na een herstart kun je de bestaande speler eerst stoppen met **pkill -f '[t]outbien/player.py'**.
@@ -43,6 +47,20 @@ python3 ~/.local/share/toutbien/player.py --test
 ~~~
 
 Druk Enter om de video te starten en kijk of hij aan het einde naar standby terugkeert. Druk opnieuw Enter om het wegvallen van het signaal te simuleren. Na 20 seconden kun je een nieuwe weergave activeren. Typ **q** en druk Enter om te stoppen. Als de terminal achter het videovenster staat, gebruik je **Alt+Tab** om terug te schakelen. Start de normale modus daarna met **bash ~/.local/share/toutbien/start.sh**, of herstart de Pi. Het log staat standaard in **~/.local/state/toutbien/player.log**.
+
+### PIR reageert niet
+
+Sluit de speler af met **Q** of **Esc** en voer dit uit:
+
+~~~bash
+python3 ~/.local/share/toutbien/player.py --sensor-test
+~~~
+
+Wacht na inschakelen ongeveer 60 seconden. Controleer eerst of je **GPIO17 = 0** ziet wanneer niemand beweegt. Beweeg daarna dwars door het zichtveld van de sensor. Je hoort **GPIO17 = 1** te zien. Stop met **Ctrl+C**.
+
+- Blijft het signaal **0**, haal de voeding van de Pi en controleer VCC, GND en OUT aan beide kanten. Verhoog de gevoeligheid of richt de sensor opnieuw.
+- Blijft het signaal **1**, maak het detectiegebied vrij en zet de tijdinstelling van de sensor korter. Na een afgespeelde video wacht de speler op 20 aaneengesloten seconden **0**. Beweging binnen die periode zet de teller terug.
+- Wisselt het signaal wel, gebruik **--test** hierboven om de video los van de sensor te testen. Bekijk bij een fout **tail -n 30 ~/.local/state/toutbien/player.log**. Bij gebruik van een lichtsluis voeg je **--beam** toe aan **--sensor-test**.
 
 ## Exacte aanwezigheidsdetectie met een lichtsluis
 

@@ -19,6 +19,7 @@ VIDEO = ROOT / "video" / "productvideo.mp4"
 STANDBY = ROOT / "audio" / "standbysound.wav"
 TITLE = "sorry voor het ongemak sebiet"
 RESET_SECONDS = 20
+PIR_WARMUP_SECONDS = 60
 
 
 def standby_loop(path):
@@ -48,6 +49,10 @@ def standby_loop(path):
     return rate, channels, samples.tobytes()
 
 
+class PlayerClosed(Exception):
+    pass
+
+
 class Player:
     def __init__(self, resources):
         self.socket, child = socket.socketpair()
@@ -58,7 +63,7 @@ class Player:
             self.process = subprocess.Popen(
                 [
                     "mpv", "--no-config", "--idle=yes", "--force-window=immediate",
-                    "--fullscreen", "--no-osc", "--osd-level=0",
+                    "--fullscreen", "--no-osc", "--osd-level=0", "--volume=100",
                     "--input-default-bindings=no", "--cursor-autohide=always",
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
@@ -69,6 +74,7 @@ class Player:
             )
         resources.callback(self.close)
         self.replies = resources.enter_context(self.socket.makefile("rb"))
+        self.playback_failed = False
 
     def close(self):
         self.socket.close()
@@ -80,16 +86,62 @@ class Player:
 
     def command(self, *args):
         request = json.dumps({"command": args, "request_id": 1}) + "\n"
-        self.socket.sendall(request.encode())
-        for line in self.replies:
-            message = json.loads(line)
-            if message.get("request_id") == 1:
-                if args == ("get_property", "eof-reached") and message["error"] == "property unavailable":
-                    return False
-                if message["error"] != "success":
-                    raise RuntimeError(f"mpv {args[0]}: {message['error']}")
-                return message.get("data")
-        raise RuntimeError("mpv heeft de verbinding gesloten.")
+        try:
+            self.socket.sendall(request.encode())
+            for line in self.replies:
+                message = json.loads(line)
+                if message.get("event") == "end-file" and message.get("reason") == "error":
+                    print(f"mpv kon het bestand niet afspelen: {message.get('file_error', message)}", flush=True)
+                    self.playback_failed = True
+                if message.get("request_id") == 1:
+                    if args == ("get_property", "eof-reached") and message["error"] == "property unavailable":
+                        return False
+                    if message["error"] != "success":
+                        raise RuntimeError(f"mpv {args[0]}: {message['error']}")
+                    return message.get("data")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+        code = self.process.wait(timeout=3)
+        if code == 0:
+            raise PlayerClosed
+        raise RuntimeError(f"mpv heeft de verbinding gesloten (exitcode {code}).")
+
+
+def open_sensor(resources, beam):
+    from gpiozero import DigitalInputDevice
+    from gpiozero.pins.lgpio import LGPIOFactory
+
+    # Raspberry Pi 5 kernels expose RP1 as gpiochip4 or gpiochip0.
+    chip = 4 if Path("/dev/gpiochip4").exists() else 0
+    factory = LGPIOFactory(chip=chip)
+    resources.callback(factory.close)
+    return resources.enter_context(
+        DigitalInputDevice(17, pull_up=beam, pin_factory=factory)
+    )
+
+
+def monitor_sensor(beam):
+    with ExitStack() as resources:
+        sensor = open_sensor(resources, beam)
+        print("GPIO17 (fysieke pin 11). Stop met Ctrl+C.", flush=True)
+        if not beam:
+            print("Wacht na inschakelen 60 seconden en beweeg dan voor de sensor.", flush=True)
+        previous = None
+        while True:
+            level = int(sensor.pin.state)
+            if level != previous:
+                print(f"GPIO17 = {level} ({'HOOG' if level else 'LAAG'})", flush=True)
+                previous = level
+            time.sleep(0.025)
+
+
+def set_output_volume():
+    try:
+        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "100%"], check=True, timeout=3)
+        subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"], check=True, timeout=3)
+    except (OSError, subprocess.SubprocessError) as error:
+        print(f"Kon het systeemvolume niet instellen: {error}", flush=True)
 
 
 def play(args):
@@ -111,20 +163,13 @@ def play(args):
             return
 
         if not args.test:
-            from gpiozero import DigitalInputDevice
-            from gpiozero.pins.lgpio import LGPIOFactory
+            sensor = open_sensor(resources, args.beam)
 
-            # Raspberry Pi 5 kernels expose RP1 as gpiochip4 or gpiochip0.
-            chip = 4 if Path('/dev/gpiochip4').exists() else 0
-            factory = LGPIOFactory(chip=chip)
-            resources.callback(factory.close)
-            sensor = resources.enter_context(
-                DigitalInputDevice(17, pull_up=args.beam, pin_factory=factory)
-            )
-
+        set_output_volume()
         mixer.init(frequency=rate, size=-16, channels=channels, buffer=512, allowedchanges=0)
         resources.callback(mixer.quit)
         standby = mixer.Sound(buffer=pcm)
+        standby.set_volume(1.0)
         temporary = resources.enter_context(tempfile.TemporaryDirectory())
         screen = Surface((1280, 720))
         screen.fill((0, 0, 0))
@@ -144,7 +189,8 @@ def play(args):
 
         show_standby()
 
-        deadline = time.monotonic() + (0 if args.beam or args.test else 60)
+        warming_up = not (args.beam or args.test)
+        deadline = time.monotonic() + PIR_WARMUP_SECONDS
         triggered = video_playing = stable = candidate = simulated = False
         absent_since = None
         next_eof_check = 0
@@ -165,22 +211,30 @@ def play(args):
                 present = simulated
             else:
                 time.sleep(0.025)
-                # PIR hoog bij beweging. Lichtsluis hoog bij onderbreking:
-                # met pull-up is sensor.value actief wanneer de uitgang laag is.
-                present = not sensor.value if args.beam else bool(sensor.value)
+                # Beide sensoraansluitingen gebruiken een fysiek hoog signaal als trigger.
+                present = bool(sensor.pin.state)
 
             now = time.monotonic()
-            if now < deadline:
-                continue
+            if warming_up:
+                if now < deadline:
+                    continue
+                warming_up = False
+                print(f"PIR klaar. GPIO17 = {int(present)}.", flush=True)
             if present != candidate:
                 candidate = present
                 changed_at = now
             if candidate != stable and now - changed_at >= 0.12:
                 stable = candidate
+                if not args.test:
+                    print(f"GPIO17 = {int(stable)}.", flush=True)
                 if not stable:
                     absent_since = changed_at
+                    if triggered:
+                        print(f"Reset na {RESET_SECONDS} seconden laag signaal.", flush=True)
 
             if absent_since is not None and now - absent_since >= RESET_SECONDS:
+                if triggered:
+                    print("Klaar voor volgende detectie.", flush=True)
                 triggered = False
                 absent_since = None
                 if video_playing:
@@ -192,24 +246,32 @@ def play(args):
                 if not triggered:
                     print("Video", flush=True)
                     standby.stop()
+                    player.playback_failed = False
                     player.command("loadfile", str(VIDEO), "replace")
                     triggered = video_playing = True
                     next_eof_check = now + 0.1
 
             if video_playing and now >= next_eof_check:
                 next_eof_check = now + 0.1
-                if player.command("get_property", "eof-reached"):
+                if player.command("get_property", "eof-reached") or player.playback_failed:
                     show_standby()
                     video_playing = False
 
-        raise RuntimeError(f"mpv is gestopt (exitcode {player.process.returncode}).")
+        if player.process.returncode != 0:
+            raise RuntimeError(f"mpv is gestopt (exitcode {player.process.returncode}).")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Toutbien expo-speler")
     parser.add_argument("--beam", action="store_true", help="Gebruik een lichtsluis.")
-    parser.add_argument("--test", action="store_true", help="Test met Enter in de terminal.")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--test", action="store_true", help="Test met Enter in de terminal.")
+    modes.add_argument("--sensor-test", action="store_true", help="Toon het ruwe GPIO17-signaal.")
+    args = parser.parse_args()
     try:
-        play(parser.parse_args())
-    except KeyboardInterrupt:
+        if args.sensor_test:
+            monitor_sensor(args.beam)
+        else:
+            play(args)
+    except (KeyboardInterrupt, PlayerClosed):
         pass
