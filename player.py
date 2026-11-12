@@ -20,6 +20,8 @@ STANDBY = ROOT / "audio" / "standbysound.wav"
 TITLE = "sorry voor het ongemak sebiet"
 RESET_SECONDS = 20
 PIR_WARMUP_SECONDS = 60
+READ_SECONDS = 3
+BLACK_SECONDS = 3
 
 
 def standby_loop(path):
@@ -67,7 +69,7 @@ class Player:
                     "--input-default-bindings=no", "--cursor-autohide=always",
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
-                    f"--script={ROOT / 'fade.lua'}",
+                    f"--script={ROOT / 'controls.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
                 ],
                 pass_fds=(fd,),
@@ -173,6 +175,8 @@ def play(args):
         temporary = resources.enter_context(tempfile.TemporaryDirectory())
         screen = Surface((1280, 720))
         screen.fill((0, 0, 0))
+        black_image = str(Path(temporary) / "black.png")
+        image.save(screen, black_image)
         font.init()
         resources.callback(font.quit)
         title = font.Font(None, 76).render(TITLE, True, (255, 255, 255))
@@ -198,6 +202,8 @@ def play(args):
         triggered = video_playing = stable = candidate = simulated = False
         absent_since = None
         next_eof_check = 0
+        video_at = None
+        standby_at = None
         changed_at = time.monotonic()
         if args.test:
             print("Enter = hoofd erin/eruit. Typ q en druk Enter om te stoppen.", flush=True)
@@ -228,8 +234,10 @@ def play(args):
             if present != candidate:
                 candidate = present
                 changed_at = now
+            new_detection = False
             if candidate != stable and now - changed_at >= 0.12:
                 stable = candidate
+                new_detection = stable
                 if not args.test:
                     print(f"GPIO17 = {int(stable)}.", flush=True)
                 if not stable:
@@ -241,26 +249,39 @@ def play(args):
                 if triggered:
                     print("Klaar voor volgende detectie.", flush=True)
                 triggered = False
+                video_at = None
                 absent_since = None
                 if video_playing:
                     show_standby()
                     video_playing = False
 
+            if standby_at is not None and now >= standby_at:
+                show_standby()
+                standby_at = None
+
             if stable:
                 absent_since = None
-                if not triggered:
-                    print("Video", flush=True)
-                    standby.stop()
-                    player.playback_failed = False
-                    player.command("loadfile", str(VIDEO), "replace")
-                    triggered = video_playing = True
-                    next_eof_check = now + 0.1
+                if new_detection and not triggered and standby_at is None:
+                    triggered = True
+                    video_at = now + READ_SECONDS
+                    print(f"Video start over {READ_SECONDS} seconden.", flush=True)
+
+            if video_at is not None and now >= video_at:
+                print("Video", flush=True)
+                standby.stop()
+                player.playback_failed = False
+                player.command("loadfile", str(VIDEO), "replace")
+                video_playing = True
+                video_at = None
+                next_eof_check = now + 0.1
 
             if video_playing and now >= next_eof_check:
                 next_eof_check = now + 0.1
                 if player.command("get_property", "eof-reached") or player.playback_failed:
-                    show_standby()
+                    player.command("loadfile", black_image, "replace")
+                    standby_at = time.monotonic() + BLACK_SECONDS
                     video_playing = False
+                    triggered = False
 
         if player.process.returncode != 0:
             raise RuntimeError(f"mpv is gestopt (exitcode {player.process.returncode}).")

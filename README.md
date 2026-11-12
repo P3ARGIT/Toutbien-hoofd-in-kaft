@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Bij een actief sensorsignaal stopt het standbygeluid en start de productvideo met geluid vanaf het begin. In de laatste seconde fadet het beeld naar zwart. Daarna verschijnt de standbytitel en keert het geluid terug, ook als de sensor nog actief is. Na 20 seconden zonder sensorsignaal wordt de speler opnieuw gereed voor de volgende bezoeker. Als de video dan nog loopt, stopt hij en verschijnt standby.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Na detectie blijft het standbybeeld drie seconden zichtbaar. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. De laatste vier seconden van de video faden naar zwart. Na afloop blijft het scherm drie seconden zwart en stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
 
 ## Aansluiten
 
@@ -30,7 +30,7 @@ cd Toutbien-hoofd-in-kaft
 bash install.sh
 ~~~
 
-Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie kopieert de speler en beide mediabestanden naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
+Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie rendert de fade vooraf in een afspeelkopie van de video en zet de speler en media naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
 
 Voor opstarten zonder toetsenbord kies je via **sudo raspi-config** voor **Desktop Autologin** en zet je **Screen Blanking** uit. Herstart daarna. [Raspberry Pi OS-instellingen](https://www.raspberrypi.com/documentation/computers/configuration.html)
 
@@ -46,7 +46,7 @@ Test vóór de eerste herstart eventueel zonder sensor vanuit een terminal op de
 python3 ~/.local/share/toutbien/player.py --test
 ~~~
 
-Druk Enter om de video te starten en kijk of hij aan het einde naar standby terugkeert. Druk opnieuw Enter om het wegvallen van het signaal te simuleren. Na 20 seconden kun je een nieuwe weergave activeren. Typ **q** en druk Enter om te stoppen. Als de terminal achter het videovenster staat, gebruik je **Alt+Tab** om terug te schakelen. Start de normale modus daarna met **bash ~/.local/share/toutbien/start.sh**, of herstart de Pi. Het log staat standaard in **~/.local/state/toutbien/player.log**.
+Druk Enter om de video te starten en kijk of hij aan het einde naar standby terugkeert. Druk opnieuw Enter om het wegvallen van het signaal te simuleren. Zodra standby terug is, kun je met Enter een nieuwe weergave activeren. Typ **q** en druk Enter om te stoppen. Als de terminal achter het videovenster staat, gebruik je **Alt+Tab** om terug te schakelen. Start de normale modus daarna met **bash ~/.local/share/toutbien/start.sh**, of herstart de Pi. Het log staat standaard in **~/.local/state/toutbien/player.log**.
 
 ### PIR reageert niet
 
@@ -59,7 +59,7 @@ python3 ~/.local/share/toutbien/player.py --sensor-test
 Wacht na inschakelen ongeveer 60 seconden. Controleer eerst of je **GPIO17 = 0** ziet wanneer niemand beweegt. Beweeg daarna dwars door het zichtveld van de sensor. Je hoort **GPIO17 = 1** te zien. Stop met **Ctrl+C**.
 
 - Blijft het signaal **0**, haal de voeding van de Pi en controleer VCC, GND en OUT aan beide kanten. Verhoog de gevoeligheid of richt de sensor opnieuw.
-- Blijft het signaal **1**, maak het detectiegebied vrij en zet de tijdinstelling van de sensor korter. Na een afgespeelde video wacht de speler op 20 aaneengesloten seconden **0**. Beweging binnen die periode zet de teller terug.
+- Blijft het signaal **1**, maak het detectiegebied vrij en zet de tijdinstelling van de sensor korter. Voor een nieuwe detectie in standby moet het signaal eerst terug naar **0** en daarna weer naar **1**.
 - Wisselt het signaal wel, gebruik **--test** hierboven om de video los van de sensor te testen. Bekijk bij een fout **tail -n 30 ~/.local/state/toutbien/player.log**. Bij gebruik van een lichtsluis voeg je **--beam** toe aan **--sensor-test**.
 
 ## Exacte aanwezigheidsdetectie met een lichtsluis

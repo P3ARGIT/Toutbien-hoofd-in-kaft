@@ -19,13 +19,33 @@ autostart_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 
 sudo apt-get update
-sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs
+sudo apt-get install -y mpv ffmpeg python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs
 
 install -d "$app_dir/audio" "$app_dir/video" "$autostart_dir" "$applications_dir"
+source_video="$project_dir/video/productvideo.mp4"
+duration="$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of csv=p=0 "$source_video")"
+fade="$(/usr/bin/python3 -c '
+import math
+import sys
+
+duration = float(sys.argv[1])
+if not math.isfinite(duration) or duration <= 0:
+    raise SystemExit("Ongeldige duur van de productvideo.")
+length = min(4, duration)
+print(f"fade=t=out:st={duration - length:.6f}:d={length:.6f}")
+' "$duration")"
+
+rendered="$(mktemp "$app_dir/video/.productvideo.XXXXXX")"
+trap 'rm -f -- "$rendered"' EXIT
+echo "Productvideo voorbereiden met een fade van vier seconden."
+ffmpeg -nostdin -hide_banner -loglevel error -y -i "$source_video" \
+    -map 0:v:0 -map '0:a:0?' -vf "$fade" -c:v libx264 -preset veryfast \
+    -crf 18 -pix_fmt yuv420p -c:a copy -movflags +faststart -f mp4 "$rendered"
+mv -f -- "$rendered" "$app_dir/video/productvideo.mp4"
+
 install -m 644 "$project_dir/player.py" "$app_dir/player.py"
-install -m 644 "$project_dir/fade.lua" "$app_dir/fade.lua"
+install -m 644 "$project_dir/controls.lua" "$app_dir/controls.lua"
 install -m 644 "$project_dir/audio/standbysound.wav" "$app_dir/audio/standbysound.wav"
-install -m 644 "$project_dir/video/productvideo.mp4" "$app_dir/video/productvideo.mp4"
 
 cat > "$app_dir/start.sh" <<EOF
 #!/usr/bin/env bash
