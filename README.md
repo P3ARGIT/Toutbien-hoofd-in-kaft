@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Na detectie blijft het standbybeeld drie seconden zichtbaar. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. De laatste vier seconden van de video faden naar zwart. Na afloop blijft het scherm drie seconden zwart en stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Na detectie blijft het standbybeeld drie seconden zichtbaar. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
 
 ## Aansluiten
 
@@ -30,7 +30,7 @@ cd Toutbien-hoofd-in-kaft
 bash install.sh
 ~~~
 
-Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie rendert de fade vooraf in een afspeelkopie van de video en zet de speler en media naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
+Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie kopieert de speler, de originele video en het standbygeluid naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
 
 Voor opstarten zonder toetsenbord kies je via **sudo raspi-config** voor **Desktop Autologin** en zet je **Screen Blanking** uit. Herstart daarna. [Raspberry Pi OS-instellingen](https://www.raspberrypi.com/documentation/computers/configuration.html)
 
