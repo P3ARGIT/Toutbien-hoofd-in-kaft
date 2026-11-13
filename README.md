@@ -16,7 +16,7 @@ De module krijgt 5 V op VCC en levert volgens Velleman 0 V of circa 3 V op OUT. 
 
 Richt de PIR op de opening, weg van passerend publiek. Zet de gevoeligheid laag en de tijdinstelling op de kortste stand. Tijdens de eerste 60 seconden na het opstarten van de Pi speelt standby al terwijl de PIR opwarmt. Bij het starten wacht de app eerst op een stabiel laag signaal. Daarna triggert een overgang naar hoog de countdown. Een stil hoofd kan het bewegingssignaal laten wegvallen, en na vertrek blijft het signaal gedurende de ingestelde tijd nog hoog. Test daarom zowel met een stil hoofd als met iemand die langs het paneel loopt.
 
-Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Beide geluiden gebruiken de standaard audio-uitgang van de desktopsessie. De speler zet die uitgang bij het starten op 100% en heft dempen op.
+Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Beide geluiden gebruiken de standaard audio-uitgang van de desktopsessie. De speler zet die uitgang bij het starten op 60% en heft dempen op.
 
 ## Installeren
 

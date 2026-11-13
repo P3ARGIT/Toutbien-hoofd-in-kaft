@@ -143,7 +143,7 @@ def monitor_sensor(beam):
 
 def set_output_volume():
     try:
-        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "100%"], check=True, timeout=3)
+        subprocess.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "60%"], check=True, timeout=3)
         subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"], check=True, timeout=3)
     except (OSError, subprocess.SubprocessError) as error:
         print(f"Kon het systeemvolume niet instellen: {error}", flush=True)
