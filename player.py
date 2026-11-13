@@ -187,9 +187,10 @@ def play(args):
         if title_font is None:
             title_font = font.match_font("DejaVu Sans", bold=True)
             print("Obviously ontbreekt. Standbytitel gebruikt DejaVu Sans.", flush=True)
-        title = font.Font(title_font, 76).render(TITLE, True, STANDBY_TEXT)
+        size = 57
+        title = font.Font(title_font, size).render(TITLE, True, STANDBY_TEXT)
         if title.get_width() > screen.get_width() - 96:
-            size = 76 * (screen.get_width() - 96) // title.get_width()
+            size = size * (screen.get_width() - 96) // title.get_width()
             title = font.Font(title_font, size).render(TITLE, True, STANDBY_TEXT)
         screen.blit(title, title.get_rect(center=screen.get_rect().center))
         standby_image = str(Path(temporary) / "standby.png")
