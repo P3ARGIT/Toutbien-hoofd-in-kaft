@@ -182,19 +182,31 @@ def play(args):
         image.save(screen, black_image)
         font.init()
         resources.callback(font.quit)
-        screen.fill(STANDBY_BACKGROUND)
         title_font = font.match_font("Obviously", bold=True)
         if title_font is None:
             title_font = font.match_font("DejaVu Sans", bold=True)
             print("Obviously ontbreekt. Standbytitel gebruikt DejaVu Sans.", flush=True)
-        size = 57
-        title = font.Font(title_font, size).render(TITLE, True, STANDBY_TEXT)
-        if title.get_width() > screen.get_width() - 96:
-            size = size * (screen.get_width() - 96) // title.get_width()
-            title = font.Font(title_font, size).render(TITLE, True, STANDBY_TEXT)
-        screen.blit(title, title.get_rect(center=screen.get_rect().center))
         standby_image = str(Path(temporary) / "standby.png")
-        image.save(screen, standby_image)
+        for dimensions, lines, filename in (
+            ((1280, 720), (TITLE,), "standby.png"),
+            ((720, 1280), ("sorry voor het", "ongemak sebiet"), "standby-portrait.png"),
+        ):
+            screen = Surface(dimensions)
+            screen.fill(STANDBY_BACKGROUND)
+            size = 57
+            title_face = font.Font(title_font, size)
+            widest = max(title_face.size(line)[0] for line in lines)
+            available = screen.get_width() - 96
+            if widest > available:
+                size = size * available // widest
+                title_face = font.Font(title_font, size)
+            line_height = title_face.get_linesize()
+            first_y = (screen.get_height() - len(lines) * line_height) // 2
+            for index, line in enumerate(lines):
+                title = title_face.render(line, True, STANDBY_TEXT)
+                center_y = first_y + index * line_height + line_height // 2
+                screen.blit(title, title.get_rect(center=(screen.get_width() // 2, center_y)))
+            image.save(screen, str(Path(temporary) / filename))
 
         player = Player(resources)
         overlay = None

@@ -40,7 +40,7 @@ De speler gebruikt **Obviously** als het lettertype op de Pi is geïnstalleerd. 
 
 ## Starten en afsluiten
 
-Dubbelklik op **Toutbien** op het bureaublad of kies **Toutbien expo-speler** in het toepassingenmenu onder **Geluid en video**. Verschijnt een vraag over het bureaubladbestand, kies **Uitvoeren**. Druk in het spelersvenster op **Q** of **Esc** om het scherm en geluid te sluiten. Automatisch opstarten bij de volgende desktoplogin blijft actief.
+Dubbelklik op **Toutbien** op het bureaublad of kies **Toutbien expo-speler** in het toepassingenmenu onder **Geluid en video**. Verschijnt een vraag over het bureaubladbestand, kies **Uitvoeren**. Druk in het spelersvenster op **P** voor portrait (90° tegen de klok in, zoals bij de rechtop gemonteerde monitor) of **L** voor landscape. De app start in landscape. In portrait behoudt de video zijn beeldverhouding en kan er boven en onder een zwarte strook staan. Druk op **Q** of **Esc** om het scherm en geluid te sluiten. Automatisch opstarten bij de volgende desktoplogin blijft actief.
 
 ## Testen
 

@@ -18,22 +18,65 @@ local colors = {
 }
 local circle = "m 12 0 b 19 0 24 5 24 12 b 24 19 19 24 12 24 b 5 24 0 19 0 12 b 0 5 5 0 12 0"
 
-mp.register_script_message("toutbien-standby", function(status, number)
-    if status == "hidden" then
+local portrait = false
+local status, number = "hidden", ""
+
+local function draw_standby()
+    local color = colors[status]
+    if not color then
         standby_overlay:remove()
         return
     end
 
-    local color = colors[status]
-    if not color then
-        return
-    end
-
-    standby_overlay.data = [[{\an7\pos(32,26)\bord0\shad0\1c&H]] ..
+    -- OSD coordinates stay in landscape even when mpv rotates the image.
+    local dot_position = portrait and [[\pos(32,664)]] or [[\pos(32,26)]]
+    standby_overlay.data = [[{\an7]] .. dot_position .. [[\bord0\shad0\1c&H]] ..
         color .. [[&\p1}]] .. circle .. [[{\p0}]]
-    if number and number:match("^[123]$") then
-        standby_overlay.data = standby_overlay.data .. "\n" ..
-            [[{\an8\pos(640,430)\fnObviously\fs102\b1\1c&H2113D6&\bord0\shad0}]] .. number
+    if number:match("^[123]$") then
+        local position = portrait and [[\an5\pos(790,360)\frz90]] or [[\an8\pos(640,430)]]
+        standby_overlay.data = standby_overlay.data .. "\n" .. "{" .. position ..
+            [[\fnObviously\fs102\b1\1c&H2113D6&\bord0\shad0}]] .. number
     end
     standby_overlay:update()
+end
+
+mp.register_script_message("toutbien-standby", function(new_status, new_number)
+    status, number = new_status, new_number or ""
+    draw_standby()
 end)
+
+local function is_standby(path)
+    return path:match("[/\\]standby%.png$") ~= nil
+end
+
+mp.add_hook("on_load", 50, function()
+    local path = mp.get_property("path", "")
+    if portrait and is_standby(path) then
+        local portrait_image = path:gsub("standby%.png$", "standby-portrait.png")
+        mp.set_property("stream-open-filename", portrait_image)
+    end
+end)
+
+local function set_orientation(use_portrait)
+    if portrait == use_portrait then
+        return
+    end
+    portrait = use_portrait
+    mp.set_property_number("video-rotate", portrait and 270 or 0)
+    local path = mp.get_property("path", "")
+    if is_standby(path) then
+        mp.commandv("loadfile", path, "replace")
+    end
+    draw_standby()
+end
+
+for _, key in ipairs({"p", "P"}) do
+    mp.add_forced_key_binding(key, "toutbien-portrait-" .. key, function()
+        set_orientation(true)
+    end)
+end
+for _, key in ipairs({"l", "L"}) do
+    mp.add_forced_key_binding(key, "toutbien-landscape-" .. key, function()
+        set_orientation(false)
+    end)
+end
