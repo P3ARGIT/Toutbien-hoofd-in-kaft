@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de witte titel **sorry voor het ongemak sebiet** op een zwart scherm en speelt de WAV continu door. Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. Na detectie verschijnt onder de titel **3**, **2** en **1**, elk één seconde. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. Onderaan toont een voortgangsbalk de afspeelpositie en de resterende tijd. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In standby staat de rode titel **sorry voor het ongemak sebiet** (#d61321) op een crèmekleurig scherm (#f3eadc) en speelt de WAV continu door. Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. Na detectie verschijnt onder de titel **3**, **2** en **1**, elk één seconde. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
 
 ## Aansluiten
 
@@ -33,6 +33,10 @@ bash install.sh
 Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie kopieert de speler, de originele video en het standbygeluid naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
 
 Voor opstarten zonder toetsenbord kies je via **sudo raspi-config** voor **Desktop Autologin** en zet je **Screen Blanking** uit. Herstart daarna. [Raspberry Pi OS-instellingen](https://www.raspberrypi.com/documentation/computers/configuration.html)
+
+## Lettertype
+
+De speler gebruikt **Obviously** als het lettertype op de Pi is geïnstalleerd. Plaats een gelicentieerd OTF- of TTF-bestand in `~/.local/share/fonts/`, voer `fc-cache -f` uit en heropen Toutbien. Zonder Obviously gebruikt de standbytitel DejaVu Sans. [Obviously bij Adobe Fonts](https://fonts.adobe.com/fonts/obviously)
 
 ## Starten en afsluiten
 

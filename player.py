@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parent
 VIDEO = ROOT / "video" / "productvideo.mp4"
 STANDBY = ROOT / "audio" / "standbysound.wav"
 TITLE = "sorry voor het ongemak sebiet"
+STANDBY_BACKGROUND = (243, 234, 220)
+STANDBY_TEXT = (214, 19, 33)
 RESET_SECONDS = 20
 PIR_WARMUP_SECONDS = 60
 READ_SECONDS = 3
@@ -180,7 +182,15 @@ def play(args):
         image.save(screen, black_image)
         font.init()
         resources.callback(font.quit)
-        title = font.Font(None, 76).render(TITLE, True, (255, 255, 255))
+        screen.fill(STANDBY_BACKGROUND)
+        title_font = font.match_font("Obviously", bold=True)
+        if title_font is None:
+            title_font = font.match_font("DejaVu Sans", bold=True)
+            print("Obviously ontbreekt. Standbytitel gebruikt DejaVu Sans.", flush=True)
+        title = font.Font(title_font, 76).render(TITLE, True, STANDBY_TEXT)
+        if title.get_width() > screen.get_width() - 96:
+            size = 76 * (screen.get_width() - 96) // title.get_width()
+            title = font.Font(title_font, size).render(TITLE, True, STANDBY_TEXT)
         screen.blit(title, title.get_rect(center=screen.get_rect().center))
         standby_image = str(Path(temporary) / "standby.png")
         image.save(screen, standby_image)

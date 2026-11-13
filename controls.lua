@@ -33,51 +33,7 @@ mp.register_script_message("toutbien-standby", function(status, number)
         color .. [[&\p1}]] .. circle .. [[{\p0}]]
     if number and number:match("^[123]$") then
         standby_overlay.data = standby_overlay.data .. "\n" ..
-            [[{\an8\pos(640,430)\fs102\b1\bord0\shad0}]] .. number
+            [[{\an8\pos(640,430)\fnObviously\fs102\b1\1c&H2113D6&\bord0\shad0}]] .. number
     end
     standby_overlay:update()
-end)
-
-local video_progress = mp.create_osd_overlay("ass-events")
-video_progress.res_x = 1280
-video_progress.res_y = 720
-
-local function update_progress()
-    local duration = mp.get_property_number("duration", 0)
-    if duration <= 0 then
-        return
-    end
-
-    local position = math.max(0, math.min(duration, mp.get_property_number("time-pos", 0)))
-    local width = 1120
-    local filled = math.floor(width * position / duration + 0.5)
-    local remaining = math.ceil(duration - position)
-    local parts = {
-        [[{\an7\pos(32,678)\bord0\shad0\1c&H555555&\p1}m 0 0 l 1120 0 1120 8 0 8{\p0}]],
-    }
-    if filled > 0 then
-        parts[#parts + 1] = ([[{\an7\pos(32,678)\bord0\shad0\1c&H5EC522&\p1}m 0 0 l %d 0 %d 8 0 8{\p0}]]):format(filled, filled)
-    end
-    parts[#parts + 1] = ([[{\an6\pos(1248,682)\fs26\bord2\shad0}%d:%02d]]):format(
-        math.floor(remaining / 60), remaining % 60
-    )
-    video_progress.data = table.concat(parts, "\n")
-    video_progress:update()
-end
-
-local progress_timer = mp.add_periodic_timer(0.1, update_progress)
-progress_timer:kill()
-
-local function hide_progress()
-    progress_timer:kill()
-    video_progress:remove()
-end
-
-mp.register_event("start-file", hide_progress)
-mp.register_event("end-file", hide_progress)
-mp.register_event("file-loaded", function()
-    if mp.get_property("filename") == "productvideo.mp4" then
-        update_progress()
-        progress_timer:resume()
-    end
 end)
