@@ -49,11 +49,18 @@ local function is_standby(path)
     return path:match("[/\\]standby%.png$") ~= nil
 end
 
+local function is_product_video(path)
+    return path:match("[/\\]productvideo%.mp4$") ~= nil
+end
+
 mp.add_hook("on_load", 50, function()
     local path = mp.get_property("path", "")
     if portrait and is_standby(path) then
         local portrait_image = path:gsub("standby%.png$", "standby-portrait.png")
         mp.set_property("stream-open-filename", portrait_image)
+    elseif portrait and is_product_video(path) then
+        local portrait_video = path:gsub("productvideo%.mp4$", "productvideoPortrait.mp4")
+        mp.set_property("stream-open-filename", portrait_video)
     end
 end)
 
@@ -64,7 +71,7 @@ local function set_orientation(use_portrait)
     portrait = use_portrait
     mp.set_property_number("video-rotate", portrait and 270 or 0)
     local path = mp.get_property("path", "")
-    if is_standby(path) then
+    if is_standby(path) or is_product_video(path) then
         mp.commandv("loadfile", path, "replace")
     end
     draw_standby()
