@@ -17,6 +17,7 @@ import wave
 
 ROOT = Path(__file__).resolve().parent
 VIDEO = ROOT / "video" / "productvideo.mp4"
+PORTRAIT_VIDEO = VIDEO.with_name("productvideoPortrait.mp4")
 STANDBY = ROOT / "audio" / "standbysound.wav"
 TITLE = "sorry voor het ongemak sebiet"
 STANDBY_BACKGROUND = (243, 234, 220)
@@ -73,6 +74,7 @@ class Player:
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
                     "--video-rotate=270",
+                    f"--script-opts-append=toutbien-portrait_video={PORTRAIT_VIDEO}",
                     f"--script={ROOT / 'controls.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
                 ],
@@ -155,8 +157,9 @@ def play(args):
     from pygame import Surface, font, image, mixer
 
     rate, channels, pcm = standby_loop(STANDBY)
-    if not VIDEO.is_file():
-        raise FileNotFoundError(VIDEO)
+    for path in (VIDEO, PORTRAIT_VIDEO):
+        if not path.is_file():
+            raise FileNotFoundError(path)
 
     with ExitStack() as resources:
         lock = resources.enter_context(
@@ -188,26 +191,16 @@ def play(args):
             title_font = font.match_font("DejaVu Sans", bold=True)
             print("Obviously ontbreekt. Standbytitel gebruikt DejaVu Sans.", flush=True)
         standby_image = str(Path(temporary) / "standby.png")
-        for dimensions, lines, filename in (
-            ((1280, 720), (TITLE,), "standby.png"),
-            ((720, 1280), ("sorry voor het", "ongemak sebiet"), "standby-portrait.png"),
-        ):
-            screen = Surface(dimensions)
-            screen.fill(STANDBY_BACKGROUND)
-            size = 57
-            title_face = font.Font(title_font, size)
-            widest = max(title_face.size(line)[0] for line in lines)
-            available = screen.get_width() - 96
-            if widest > available:
-                size = size * available // widest
-                title_face = font.Font(title_font, size)
-            line_height = title_face.get_linesize()
-            first_y = (screen.get_height() - len(lines) * line_height) // 2
-            for index, line in enumerate(lines):
-                title = title_face.render(line, True, STANDBY_TEXT)
-                center_y = first_y + index * line_height + line_height // 2
-                screen.blit(title, title.get_rect(center=(screen.get_width() // 2, center_y)))
-            image.save(screen, str(Path(temporary) / filename))
+        screen.fill(STANDBY_BACKGROUND)
+        size = 57
+        title_face = font.Font(title_font, size)
+        width = title_face.size(TITLE)[0]
+        available = screen.get_width() - 96
+        if width > available:
+            title_face = font.Font(title_font, size * available // width)
+        title = title_face.render(TITLE, True, STANDBY_TEXT)
+        screen.blit(title, title.get_rect(center=screen.get_rect().center))
+        image.save(screen, standby_image)
 
         player = Player(resources)
         overlay = None
@@ -307,8 +300,10 @@ def play(args):
                 absent_since = None
                 if new_detection and not triggered and standby_at is None:
                     triggered = True
-                    video_at = now + READ_SECONDS
-                    print(f"Video start over {READ_SECONDS} seconden.", flush=True)
+                    portrait = player.command("get_property", "video-rotate") == 270
+                    video_at = now if portrait else now + READ_SECONDS
+                    if not portrait:
+                        print(f"Video start over {READ_SECONDS} seconden.", flush=True)
 
             if video_at is not None and now >= video_at:
                 print("Video", flush=True)

@@ -1,4 +1,7 @@
 local mp = require "mp"
+local options = { portrait_video = "" }
+require("mp.options").read_options(options, "toutbien")
+local portrait_video = options.portrait_video
 
 local function quit()
     mp.commandv("quit", "0")
@@ -32,8 +35,8 @@ local function draw_standby()
     local dot_position = portrait and [[\pos(32,664)]] or [[\pos(32,26)]]
     standby_overlay.data = [[{\an7]] .. dot_position .. [[\bord0\shad0\1c&H]] ..
         color .. [[&\p1}]] .. circle .. [[{\p0}]]
-    if number:match("^[123]$") then
-        local position = portrait and [[\an5\pos(790,360)\frz90]] or [[\an8\pos(640,430)]]
+    if not portrait and number:match("^[123]$") then
+        local position = [[\an8\pos(640,430)]]
         standby_overlay.data = standby_overlay.data .. "\n" .. "{" .. position ..
             [[\fnObviously\fs102\b1\1c&H2113D6&\bord0\shad0}]] .. number
     end
@@ -56,11 +59,13 @@ end
 mp.add_hook("on_load", 50, function()
     local path = mp.get_property("path", "")
     if portrait and is_standby(path) then
-        local portrait_image = path:gsub("standby%.png$", "standby-portrait.png")
-        mp.set_property("stream-open-filename", portrait_image)
-    elseif portrait and is_product_video(path) then
-        local portrait_video = path:gsub("productvideo%.mp4$", "productvideoPortrait.mp4")
         mp.set_property("stream-open-filename", portrait_video)
+        mp.set_property_native("file-local-options/pause", true)
+    elseif is_product_video(path) then
+        if portrait then
+            mp.set_property("stream-open-filename", portrait_video)
+        end
+        mp.set_property_native("file-local-options/pause", false)
     end
 end)
 
