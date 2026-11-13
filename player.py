@@ -233,6 +233,7 @@ def play(args):
         warming_up = warmup_left > 0
         deadline = time.monotonic() + warmup_left
         triggered = video_playing = stable = candidate = simulated = False
+        sensor_ready = args.test
         absent_since = None
         next_eof_check = 0
         video_at = None
@@ -263,10 +264,19 @@ def play(args):
                 if now < deadline:
                     continue
                 warming_up = False
+                candidate = present
+                changed_at = now
                 print(f"PIR klaar. GPIO17 = {int(present)}.", flush=True)
             if present != candidate:
                 candidate = present
                 changed_at = now
+            if not sensor_ready:
+                if not candidate and now - changed_at >= 0.12:
+                    sensor_ready = True
+                    print("GPIO17 laag. Klaar voor nieuwe detectie.", flush=True)
+                update_standby("motion" if candidate else "idle")
+                continue
+
             new_detection = False
             if candidate != stable and now - changed_at >= 0.12:
                 stable = candidate
