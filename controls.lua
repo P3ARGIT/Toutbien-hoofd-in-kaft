@@ -18,7 +18,7 @@ local colors = {
 }
 local circle = "m 12 0 b 19 0 24 5 24 12 b 24 19 19 24 12 24 b 5 24 0 19 0 12 b 0 5 5 0 12 0"
 
-local portrait = false
+local portrait = true
 local status, number = "hidden", ""
 
 local function draw_standby()

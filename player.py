@@ -72,6 +72,7 @@ class Player:
                     "--input-default-bindings=no", "--cursor-autohide=always",
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
+                    "--video-rotate=270",
                     f"--script={ROOT / 'controls.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
                 ],
