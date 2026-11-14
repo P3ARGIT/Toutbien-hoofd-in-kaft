@@ -73,7 +73,7 @@ class Player:
                     "--input-default-bindings=no", "--cursor-autohide=always",
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
-                    "--video-rotate=270",
+                    "--video-rotate=90",
                     f"--script-opts-append=toutbien-portrait_video={PORTRAIT_VIDEO}",
                     f"--script={ROOT / 'controls.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
@@ -300,7 +300,7 @@ def play(args):
                 absent_since = None
                 if new_detection and not triggered and standby_at is None:
                     triggered = True
-                    portrait = player.command("get_property", "video-rotate") == 270
+                    portrait = player.command("get_property", "video-rotate") == 90
                     video_at = now if portrait else now + READ_SECONDS
                     if not portrait:
                         print(f"Video start over {READ_SECONDS} seconden.", flush=True)

@@ -32,11 +32,11 @@ local function draw_standby()
     end
 
     -- OSD coordinates stay in landscape even when mpv rotates the image.
-    local dot_position = portrait and [[\pos(32,664)]] or [[\pos(32,26)]]
+    local dot_position = portrait and [[\pos(1224,32)]] or [[\pos(1224,670)]]
     standby_overlay.data = [[{\an7]] .. dot_position .. [[\bord0\shad0\1c&H]] ..
         color .. [[&\p1}]] .. circle .. [[{\p0}]]
     if not portrait and number:match("^[123]$") then
-        local position = [[\an8\pos(640,430)]]
+        local position = [[\an8\pos(640,290)\frz180]]
         standby_overlay.data = standby_overlay.data .. "\n" .. "{" .. position ..
             [[\fnObviously\fs102\b1\1c&H2113D6&\bord0\shad0}]] .. number
     end
@@ -74,7 +74,7 @@ local function set_orientation(use_portrait)
         return
     end
     portrait = use_portrait
-    mp.set_property_number("video-rotate", portrait and 270 or 0)
+    mp.set_property_number("video-rotate", portrait and 90 or 180)
     local path = mp.get_property("path", "")
     if is_standby(path) or is_product_video(path) then
         mp.commandv("loadfile", path, "replace")
