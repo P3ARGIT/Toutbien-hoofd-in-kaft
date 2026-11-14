@@ -99,48 +99,54 @@ end
 local meter = mp.create_osd_overlay("ass-events")
 meter.res_x, meter.res_y = 1280, 720
 
+local displayed_level = 0
+local bar_length = 440
+local bar_thickness = 18
+
 local function draw_meter()
-    if not meter_state then
-        meter:remove()
-        return
+    displayed_level = displayed_level + (meter_state - displayed_level) * 0.35
+    if math.abs(meter_state - displayed_level) < 0.005 then
+        displayed_level = meter_state
     end
-    local fraction, level, target = meter_state[1], meter_state[2], meter_state[3]
-    local width = math.floor(440 * fraction)
-    local function text(x, y, size, label)
-        return ([[{\an5\pos(%d,%d)\frz%d\fs%d\b1\bord3\shad0}%s]]):format(
-            x, y, portrait and 270 or 180, size, label
-        )
-    end
-    local function bar(length, color)
-        local x, y, w, h = 480, 130, length, 22
+    local phase = mp.get_time() * 48
+    local amplitude = 7 * displayed_level ^ 1.5
+    local dx = math.floor(amplitude * math.sin(phase) + 0.5)
+    local dy = math.floor(amplitude * math.sin(phase * 0.73) + 0.5)
+
+    local function bar(length, color, outline)
+        local x, y, w, h = 860 - length, 130, length, bar_thickness
         if portrait then
-            x, y, w, h = 190, 140, 22, length
-        else
-            x = 860 - length
+            -- On the mounted screen, raw X decreases from top to bottom.
+            x, y, w, h = 425, 140, bar_thickness, length
         end
-        return ([[{\an7\pos(%d,%d)\bord1\shad0\1c&H%s&\p1}m 0 0 l %d 0 %d %d 0 %d{\p0}]]):format(
-            x, y, color, w, w, h, h
+        return ([[{\an7\pos(%d,%d)\bord%d\shad0\1c&H%s&\3c&H2113D6&\p1}m 0 0 l %d 0 %d %d 0 %d{\p0}]]):format(
+            x + dx, y + dy, outline, color, w, w, h, h
         )
     end
-    local prompt = target == "MICROPHONE UNAVAILABLE" and "Microphone unavailable" or "Speak into the microphone"
-    local details = target == "MICROPHONE UNAVAILABLE" and "" or level .. "  /  " .. target
-    local parts = {
-        portrait and text(325, 360, 42, prompt) or text(640, 255, 42, prompt),
-        portrait and text(255, 360, 30, details) or text(640, 188, 30, details),
-        bar(440, "555555"),
-    }
-    if width > 0 then
-        parts[#parts + 1] = bar(width, "5EC522")
+
+    meter.data = bar(bar_length, "DCEAF3", 3)
+    local fill = math.floor(bar_length * displayed_level + 0.5)
+    if fill > 0 then
+        meter.data = meter.data .. "\n" .. bar(fill, "2113D6", 0)
     end
-    meter.data = table.concat(parts, "\n")
     meter:update()
 end
 
-mp.register_script_message("toutbien-mic", function(fraction, level, target)
+local meter_timer = mp.add_periodic_timer(1 / 30, draw_meter)
+meter_timer:kill()
+
+mp.register_script_message("toutbien-mic", function(fraction)
     if fraction == "hidden" then
+        meter_timer:kill()
         meter_state = nil
-    else
-        meter_state = {tonumber(fraction), level, target}
+        displayed_level = 0
+        meter:remove()
+        return
     end
-    draw_meter()
+    local was_visible = meter_state ~= nil
+    meter_state = math.max(0, math.min(1, tonumber(fraction) or 0))
+    if not was_visible then
+        draw_meter()
+        meter_timer:resume()
+    end
 end)

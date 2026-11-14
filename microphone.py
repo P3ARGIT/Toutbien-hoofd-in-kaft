@@ -5,10 +5,12 @@ import subprocess
 import time
 
 RATE = 16000
-FRAME_BYTES = RATE * 20 // 1000 * 2
+FRAME_MS = 10
+FRAME_BYTES = RATE * FRAME_MS // 1000 * 2
 TARGET_SPL = 80
 DEMO_THRESHOLD = -16
-REQUIRED_VOICED_FRAMES = 16  # 320 ms of consecutive speech
+REQUIRED_VOICED_MS = 75
+REQUIRED_VOICED_FRAMES = math.ceil(REQUIRED_VOICED_MS / FRAME_MS)
 
 
 def rms_dbfs(frame):

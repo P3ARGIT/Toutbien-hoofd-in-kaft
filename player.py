@@ -181,11 +181,9 @@ def play(args):
         waiting_for_voice = challenge_passed = False
         next_mic_update = 0
 
-        def show_mic_meter(level):
-            if level is None:
-                player.command("script-message-to", "controls", "toutbien-mic", "hidden")
-                return
-            player.command("script-message-to", "controls", "toutbien-mic", *level)
+        def show_mic_meter(fraction):
+            value = "hidden" if fraction is None else f"{fraction:.3f}"
+            player.command("script-message-to", "controls", "toutbien-mic", value)
 
         def stop_listening():
             nonlocal waiting_for_voice
@@ -325,13 +323,13 @@ def play(args):
                         if not stable:
                             absent_since = now
                         next_mic_update = now
-                        show_mic_meter(("0", "--", "80 dB SPL" if offset is not None else "DEMO"))
+                        show_mic_meter(0)
                         try:
                             mic.start()
                         except (OSError, RuntimeError, subprocess.SubprocessError) as error:
                             print(f"Microphone: {error}", flush=True)
                             mic.close()
-                            show_mic_meter(("0", "--", "MICROPHONE UNAVAILABLE"))
+                            show_mic_meter(0)
 
             if waiting_for_voice and mic.process is not None:
                 try:
@@ -339,18 +337,16 @@ def play(args):
                 except (OSError, RuntimeError) as error:
                     print(f"Microphone: {error}", flush=True)
                     mic.close()
-                    show_mic_meter(("0", "--", "MICROPHONE UNAVAILABLE"))
+                    show_mic_meter(0)
                 else:
                     if passed:
                         stop_listening()
                         challenge_passed = True
                         player.command("set_property", "pause", False)
                     elif level is not None and now >= next_mic_update:
-                        next_mic_update = now + 0.08
+                        next_mic_update = now + 0.04
                         fraction = min(1, max(0, (level - threshold + 35) / 35))
-                        label = f"{level + offset:.0f} dB SPL" if offset is not None else f"{level:.0f} dBFS"
-                        goal = "80 dB SPL" if offset is not None else "DEMO"
-                        show_mic_meter((f"{fraction:.3f}", label, goal))
+                        show_mic_meter(fraction)
 
             if not video_playing and standby_at is None:
                 number = ""
