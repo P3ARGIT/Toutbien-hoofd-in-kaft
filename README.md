@@ -75,7 +75,7 @@ Installeer vanuit de projectmap met **bash install.sh --beam** en herstart. In d
 
 ## Microfoonversie
 
-Deze branch pauzeert op **0:23,5**. De rood-crèmekleurige balk tussen de woorden en het CAPTCHA-logo toont het JBL-niveau en trilt sterker naarmate het niveau de drempel nadert. Voordat de video verder speelt, moet de detector minstens 75 ms aaneengesloten spraak (80 ms door de analyse in stappen van 10 ms) op of boven de ingestelde drempel herkennen. Het geluid wordt alleen tijdens de uitdaging verwerkt, in het geheugen. Er wordt geen opname opgeslagen. De video bereikt de microfoonpauze ook als de PIR intussen laag is. Vanaf de pauze keert de app na 20 seconden zonder een actief PIR-signaal terug naar standby.
+Deze branch pauzeert op **0:23,5**. De rood-crèmekleurige balk tussen de woorden en het CAPTCHA-logo toont het JBL-niveau en trilt sterker naarmate het niveau de drempel nadert. Voordat de video verder speelt, moet de detector minstens 75 ms aaneengesloten spraak (80 ms door de analyse in stappen van 10 ms) op of boven de ingestelde drempel herkennen. Haalt niemand de drempel binnen 30 seconden na de pauze, dan keert de speler terug naar standby. Het geluid wordt alleen tijdens de uitdaging verwerkt, in het geheugen. Er wordt geen opname opgeslagen. De video bereikt de microfoonpauze ook als de PIR intussen laag is. Vanaf de pauze keert de app na 20 seconden zonder een actief PIR-signaal terug naar standby.
 
 Selecteer **AV Jack** als uitgang voor de Trust-luidsprekers. De app zoekt de JBL bij de ingangen in `pactl list short sources`.
 

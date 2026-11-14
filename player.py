@@ -26,6 +26,7 @@ PIR_WARMUP_SECONDS = 60
 READ_SECONDS = 3
 BLACK_SECONDS = 3
 MIC_PAUSE_SECONDS = 23.5
+MIC_TIMEOUT_SECONDS = 30
 MIC_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "toutbien-mic-offset"
 
 
@@ -179,6 +180,7 @@ def play(args):
             raise ValueError("Invalid microphone calibration offset.")
         threshold = DEMO_THRESHOLD if offset is None else TARGET_SPL - offset
         waiting_for_voice = challenge_passed = False
+        mic_deadline = None
         next_mic_update = 0
 
         def show_mic_meter(fraction):
@@ -186,9 +188,10 @@ def play(args):
             player.command("script-message-to", "controls", "toutbien-mic", value)
 
         def stop_listening():
-            nonlocal waiting_for_voice
+            nonlocal waiting_for_voice, mic_deadline
             mic.close()
             waiting_for_voice = False
+            mic_deadline = None
             show_mic_meter(None)
 
         overlay = None
@@ -318,6 +321,7 @@ def play(args):
                     position = player.command("get_property", "time-pos")
                     if position is not None and position >= MIC_PAUSE_SECONDS:
                         player.command("set_property", "pause", True)
+                        mic_deadline = time.monotonic() + MIC_TIMEOUT_SECONDS
                         player.command("seek", MIC_PAUSE_SECONDS, "absolute+exact")
                         waiting_for_voice = True
                         if not stable:
@@ -330,6 +334,12 @@ def play(args):
                             print(f"Microphone: {error}", flush=True)
                             mic.close()
                             show_mic_meter(0)
+
+            if mic_deadline is not None and time.monotonic() >= mic_deadline:
+                print("Microfoondrempel niet gehaald binnen 30 seconden.", flush=True)
+                show_standby()
+                video_playing = triggered = False
+                absent_since = None
 
             if waiting_for_voice and mic.process is not None:
                 try:
