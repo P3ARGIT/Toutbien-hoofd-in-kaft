@@ -26,7 +26,7 @@ python3 -m venv --system-site-packages "$app_dir/mic-venv"
 "$app_dir/mic-venv/bin/python" -m pip install 'webrtcvad-wheels==2.0.14'
 video_copy=""
 trap 'rm -f -- "$video_copy"' EXIT
-for video in productvideo.mp4 productvideoPortrait.mp4; do
+for video in productvideo.mp4 productvideoPortrait.mp4 productvideoPortrait.png; do
     video_copy="$(mktemp "$app_dir/video/.productvideo.XXXXXX")"
     install -m 644 "$project_dir/video/$video" "$video_copy"
     mv -f -- "$video_copy" "$app_dir/video/$video"

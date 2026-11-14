@@ -131,7 +131,7 @@ def play(args):
     os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
     from pygame import Surface, font, image
 
-    for path in (VIDEO, PORTRAIT_VIDEO):
+    for path in (VIDEO, PORTRAIT_VIDEO, PORTRAIT_VIDEO.with_suffix(".png")):
         if not path.is_file():
             raise FileNotFoundError(path)
 
@@ -259,6 +259,7 @@ def play(args):
             if not sensor_ready:
                 if not candidate and now - changed_at >= 0.12:
                     sensor_ready = True
+                    stable = False
                     print("GPIO17 laag. Klaar voor nieuwe detectie.", flush=True)
                 update_standby("motion" if candidate else "idle")
                 continue
@@ -339,6 +340,8 @@ def play(args):
                 print("Microfoondrempel niet gehaald binnen 30 seconden.", flush=True)
                 show_standby()
                 video_playing = triggered = False
+                sensor_ready = False
+                changed_at = time.monotonic()
                 absent_since = None
 
             if waiting_for_voice and mic.process is not None:

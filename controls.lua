@@ -2,6 +2,7 @@ local mp = require "mp"
 local options = { portrait_video = "" }
 require("mp.options").read_options(options, "toutbien")
 local portrait_video = options.portrait_video
+local portrait_still = portrait_video:gsub("%.mp4$", ".png")
 
 local function quit()
     mp.commandv("quit", "0")
@@ -59,9 +60,7 @@ end
 mp.add_hook("on_load", 50, function()
     local path = mp.get_property("path", "")
     if portrait and is_standby(path) then
-        mp.set_property("stream-open-filename", portrait_video)
-        mp.set_property_native("file-local-options/pause", true)
-        mp.set_property("file-local-options/aid", "no")
+        mp.set_property("stream-open-filename", portrait_still)
     elseif is_product_video(path) then
         if portrait then
             mp.set_property("stream-open-filename", portrait_video)
