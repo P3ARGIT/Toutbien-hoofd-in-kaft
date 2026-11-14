@@ -296,7 +296,8 @@ def play(args):
                     sensor_ready = True
                     stable = False
                     print(f"GPIO17 {rearm_seconds:g} s laag. Klaar voor nieuwe detectie.", flush=True)
-                update_standby("motion" if candidate else "idle")
+                # Raw changes extend the re-arm wait without indicating a trigger.
+                update_standby("idle")
                 continue
 
             new_detection = False
@@ -376,6 +377,8 @@ def play(args):
                 print(f"Wacht op {rearm_seconds:g} s laag GPIO17-signaal.", flush=True)
                 changed_at = time.monotonic()
                 absent_since = None
+                update_standby("idle")
+                continue
 
             if waiting_for_voice and mic.process is not None:
                 try:
