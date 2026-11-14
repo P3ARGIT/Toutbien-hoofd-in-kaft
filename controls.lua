@@ -61,6 +61,7 @@ mp.add_hook("on_load", 50, function()
     if portrait and is_standby(path) then
         mp.set_property("stream-open-filename", portrait_video)
         mp.set_property_native("file-local-options/pause", true)
+        mp.set_property("file-local-options/aid", "no")
     elseif is_product_video(path) then
         if portrait then
             mp.set_property("stream-open-filename", portrait_video)

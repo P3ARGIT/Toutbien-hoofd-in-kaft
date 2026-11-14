@@ -21,7 +21,7 @@ applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 sudo apt-get update
 sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs
 
-install -d "$app_dir/audio" "$app_dir/video" "$autostart_dir" "$applications_dir"
+install -d "$app_dir/video" "$autostart_dir" "$applications_dir"
 video_copy=""
 trap 'rm -f -- "$video_copy"' EXIT
 for video in productvideo.mp4 productvideoPortrait.mp4; do
@@ -32,7 +32,6 @@ done
 
 install -m 644 "$project_dir/player.py" "$app_dir/player.py"
 install -m 644 "$project_dir/controls.lua" "$app_dir/controls.lua"
-install -m 644 "$project_dir/audio/standbysound.wav" "$app_dir/audio/standbysound.wav"
 
 cat > "$app_dir/start.sh" <<EOF
 #!/usr/bin/env bash

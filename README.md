@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In portrait staat de video stil op het eerste frame. Na detectie speelt hij direct vanaf het begin, inclusief de countdown in de video. In landscape staat in standby de rode titel **sorry voor het ongemak sebiet** (#d61321) op een crèmekleurig scherm (#f3eadc) en speelt de WAV continu door. Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. In landscape verschijnt na detectie onder de titel **3**, **2** en **1**, elk één seconde. Daarna stopt het standbygeluid en begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnen de standbytitel en het standbygeluid opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In portrait staat de video stil op het eerste frame. Na detectie speelt hij direct vanaf het begin, inclusief de countdown in de video. In landscape staat in standby de rode titel **sorry voor het ongemak sebiet** (#d61321) op een crèmekleurig scherm (#f3eadc). Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. In landscape verschijnt na detectie onder de titel **3**, **2** en **1**, elk één seconde. Daarna begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnt het stille standbyscherm opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
 
 ## Aansluiten
 
@@ -14,9 +14,9 @@ Haal eerst de voeding van de Pi. Controleer de opschriften op de **WPSE314** en 
 
 De module krijgt 5 V op VCC en levert volgens Velleman 0 V of circa 3 V op OUT. Verbind **nooit 5 V** met GPIO17. Gebruik de fysieke nummers van de 40-pins connector. [WPSE314-specificaties](https://www.velleman.eu/products/view/pir-motion-sensor-wpse314/?id=459220&lang=en) · [Officiële pinout](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio)
 
-Richt de PIR op de opening, weg van passerend publiek. Zet de gevoeligheid laag en de tijdinstelling op de kortste stand. Tijdens de eerste 60 seconden na het opstarten van de Pi speelt standby al terwijl de PIR opwarmt. Bij het starten wacht de app eerst op een stabiel laag signaal. Daarna triggert een overgang naar hoog de countdown. Een stil hoofd kan het bewegingssignaal laten wegvallen, en na vertrek blijft het signaal gedurende de ingestelde tijd nog hoog. Test daarom zowel met een stil hoofd als met iemand die langs het paneel loopt.
+Richt de PIR op de opening, weg van passerend publiek. Zet de gevoeligheid laag en de tijdinstelling op de kortste stand. Tijdens de eerste 60 seconden na het opstarten van de Pi verschijnt het standbyscherm al terwijl de PIR opwarmt. Bij het starten wacht de app eerst op een stabiel laag signaal. Daarna triggert een overgang naar hoog de countdown. Een stil hoofd kan het bewegingssignaal laten wegvallen, en na vertrek blijft het signaal gedurende de ingestelde tijd nog hoog. Test daarom zowel met een stil hoofd als met iemand die langs het paneel loopt.
 
-Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Beide geluiden gebruiken de standaard audio-uitgang van de desktopsessie. De speler zet die uitgang bij het starten op 60% en heft dempen op.
+Sluit het scherm aan via micro-HDMI. Gebruik de speaker van het scherm via HDMI, een USB-speaker of een actieve speaker via een USB-geluidsadapter. Selecteer de uitgang via het luidsprekericoon op de Pi voordat je de speler start. Het videogeluid gebruikt de standaard audio-uitgang van de desktopsessie. De speler zet die uitgang bij het starten op 60% en heft dempen op.
 
 ## Installeren
 
@@ -30,7 +30,7 @@ cd Toutbien-hoofd-in-kaft
 bash install.sh
 ~~~
 
-Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie kopieert de speler, de originele video en het standbygeluid naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
+Via een overgezet archief kun je in de uitgepakte map direct **bash install.sh** uitvoeren. De installatie kopieert de speler, en beide video's naar **~/.local/share/toutbien** en voegt hem toe aan de automatische start van je desktopaccount. Een volgende installatie overschrijft die kopie, bijvoorbeeld nadat je de bestanden in de projectmap hebt vervangen.
 
 Voor opstarten zonder toetsenbord kies je via **sudo raspi-config** voor **Desktop Autologin** en zet je **Screen Blanking** uit. Herstart daarna. [Raspberry Pi OS-instellingen](https://www.raspberrypi.com/documentation/computers/configuration.html)
 
