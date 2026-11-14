@@ -75,11 +75,11 @@ Installeer vanuit de projectmap met **bash install.sh --beam** en herstart. In d
 
 ## Microfoonversie
 
-Deze branch pauzeert op **0:22**. De meter toont het niveau van de JBL Quantum Stream Talk. Voordat de video verder speelt, moet de detector ongeveer 160 ms spraak op of boven de ingestelde drempel herkennen. Het geluid wordt alleen tijdens de uitdaging verwerkt, in het geheugen. Er wordt geen opname opgeslagen. De video bereikt de microfoonpauze ook als de PIR intussen laag is. Vanaf de pauze keert de app na 20 seconden zonder een actief PIR-signaal terug naar standby.
+Deze branch pauzeert op **0:23,5**. De meter toont het niveau van de JBL Quantum Stream Talk. Voordat de video verder speelt, moet de detector 320 ms aaneengesloten spraak op of boven de ingestelde drempel herkennen. Het geluid wordt alleen tijdens de uitdaging verwerkt, in het geheugen. Er wordt geen opname opgeslagen. De video bereikt de microfoonpauze ook als de PIR intussen laag is. Vanaf de pauze keert de app na 20 seconden zonder een actief PIR-signaal terug naar standby.
 
 Selecteer **AV Jack** als uitgang voor de Trust-luidsprekers. De app zoekt de JBL bij de ingangen in `pactl list short sources`.
 
-Zonder kalibratie werkt het spel in **DEMO** met een drempel van −24 dBFS. Voor een drempel van **80 dB SPL** gebruik je een referentiemeting op de positie van de JBL. Houd de JBL-gain en de invoervolumeregelaar daarna gelijk.
+Zonder kalibratie werkt het spel in **DEMO** met een drempel van −16 dBFS. Voor een drempel van **80 dB SPL** gebruik je een referentiemeting op de positie van de JBL. Houd de JBL-gain en de invoervolumeregelaar daarna gelijk.
 
 1. Sluit Toutbien af en start de niveautest met `~/.local/share/toutbien/mic-venv/bin/python ~/.local/share/toutbien/player.py --mic-level`.
 2. Gebruik een stabiel referentiesignaal met bekend ongewogen geluidsniveau op de positie van de JBL. Lees de stabiele dBFS-waarde af. De offset is het referentieniveau min die dBFS-waarde. Bij 80 dB SPL en −24 dBFS is de offset bijvoorbeeld 104.

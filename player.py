@@ -25,7 +25,7 @@ RESET_SECONDS = 20
 PIR_WARMUP_SECONDS = 60
 READ_SECONDS = 3
 BLACK_SECONDS = 3
-MIC_PAUSE_SECONDS = 22
+MIC_PAUSE_SECONDS = 23.5
 MIC_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "toutbien-mic-offset"
 
 

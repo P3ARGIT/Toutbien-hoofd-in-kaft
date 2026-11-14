@@ -7,7 +7,8 @@ import time
 RATE = 16000
 FRAME_BYTES = RATE * 20 // 1000 * 2
 TARGET_SPL = 80
-DEMO_THRESHOLD = -24
+DEMO_THRESHOLD = -16
+REQUIRED_VOICED_FRAMES = 16  # 320 ms of consecutive speech
 
 
 def rms_dbfs(frame):
@@ -64,7 +65,7 @@ class Microphone:
             peak = level if peak is None else max(peak, level)
             if level >= threshold and self.vad.is_speech(frame, RATE):
                 self.voiced_frames += 1
-                if self.voiced_frames >= 8:
+                if self.voiced_frames >= REQUIRED_VOICED_FRAMES:
                     return peak, True
             else:
                 self.voiced_frames = 0
