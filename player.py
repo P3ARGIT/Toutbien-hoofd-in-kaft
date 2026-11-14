@@ -27,6 +27,9 @@ READ_SECONDS = 3
 BLACK_SECONDS = 3
 MIC_PAUSE_SECONDS = 23.5
 MIC_TIMEOUT_SECONDS = 30
+SENSOR_DEBOUNCE_SECONDS = 0.12
+PIR_REARM_SECONDS = 5
+PIR_TRIGGER_SECONDS = 0.5
 MIC_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "toutbien-mic-offset"
 
 
@@ -220,6 +223,8 @@ def play(args):
         deadline = time.monotonic() + warmup_left
         triggered = video_playing = stable = candidate = simulated = False
         sensor_ready = args.test
+        rearm_seconds = SENSOR_DEBOUNCE_SECONDS
+        trigger_seconds = SENSOR_DEBOUNCE_SECONDS if args.beam else PIR_TRIGGER_SECONDS
         absent_since = None
         next_eof_check = 0
         video_at = None
@@ -254,18 +259,23 @@ def play(args):
                 changed_at = now
                 print(f"PIR klaar. GPIO17 = {int(present)}.", flush=True)
             if present != candidate:
+                if candidate and not stable and sensor_ready and not args.test:
+                    print(f"GPIO17: korte puls genegeerd ({now - changed_at:.2f} s).", flush=True)
                 candidate = present
                 changed_at = now
+                if not sensor_ready and not args.test:
+                    print(f"GPIO17 tijdens herinschakelen = {int(candidate)}.", flush=True)
             if not sensor_ready:
-                if not candidate and now - changed_at >= 0.12:
+                if not candidate and now - changed_at >= rearm_seconds:
                     sensor_ready = True
                     stable = False
-                    print("GPIO17 laag. Klaar voor nieuwe detectie.", flush=True)
+                    print(f"GPIO17 {rearm_seconds:g} s laag. Klaar voor nieuwe detectie.", flush=True)
                 update_standby("motion" if candidate else "idle")
                 continue
 
             new_detection = False
-            if candidate != stable and now - changed_at >= 0.12:
+            debounce = trigger_seconds if candidate else SENSOR_DEBOUNCE_SECONDS
+            if candidate != stable and now - changed_at >= debounce:
                 stable = candidate
                 new_detection = stable
                 if not args.test:
@@ -341,6 +351,8 @@ def play(args):
                 show_standby()
                 video_playing = triggered = False
                 sensor_ready = False
+                rearm_seconds = SENSOR_DEBOUNCE_SECONDS if args.beam else PIR_REARM_SECONDS
+                print(f"Wacht op {rearm_seconds:g} s laag GPIO17-signaal.", flush=True)
                 changed_at = time.monotonic()
                 absent_since = None
 
