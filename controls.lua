@@ -1,8 +1,4 @@
 local mp = require "mp"
-local options = { portrait_video = "" }
-require("mp.options").read_options(options, "toutbien")
-local portrait_video = options.portrait_video
-local portrait_still = portrait_video:gsub("%.mp4$", ".png")
 
 local function quit()
     mp.commandv("quit", "0")
@@ -49,26 +45,6 @@ mp.register_script_message("toutbien-standby", function(new_status, new_number)
     draw_standby()
 end)
 
-local function is_standby(path)
-    return path:match("[/\\]standby%.png$") ~= nil
-end
-
-local function is_product_video(path)
-    return path:match("[/\\]productvideo%.mp4$") ~= nil
-end
-
-mp.add_hook("on_load", 50, function()
-    local path = mp.get_property("path", "")
-    if portrait and is_standby(path) then
-        mp.set_property("stream-open-filename", portrait_still)
-    elseif is_product_video(path) then
-        if portrait then
-            mp.set_property("stream-open-filename", portrait_video)
-        end
-        mp.set_property_native("file-local-options/pause", false)
-    end
-end)
-
 local meter_state
 
 local function set_orientation(use_portrait)
@@ -77,10 +53,6 @@ local function set_orientation(use_portrait)
     end
     portrait = use_portrait
     mp.set_property_number("video-rotate", portrait and 90 or 180)
-    local path = mp.get_property("path", "")
-    if is_standby(path) or is_product_video(path) then
-        mp.commandv("loadfile", path, "replace")
-    end
     draw_standby()
 end
 

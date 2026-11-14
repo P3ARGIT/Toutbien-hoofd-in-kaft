@@ -18,6 +18,7 @@ from microphone import DEMO_THRESHOLD, TARGET_SPL, Microphone, monitor
 ROOT = Path(__file__).resolve().parent
 VIDEO = ROOT / "video" / "productvideo.mp4"
 PORTRAIT_VIDEO = VIDEO.with_name("productvideoPortrait.mp4")
+PORTRAIT_STILL = PORTRAIT_VIDEO.with_suffix(".png")
 TITLE = "sorry voor het ongemak sebiet"
 STANDBY_BACKGROUND = (243, 234, 220)
 STANDBY_TEXT = (214, 19, 33)
@@ -52,7 +53,7 @@ class Player:
                     "--keep-open=yes", "--keep-open-pause=no", "--image-display-duration=inf",
                     "--stop-screensaver=yes", "--input-terminal=no",
                     "--video-rotate=90",
-                    f"--script-opts-append=toutbien-portrait_video={PORTRAIT_VIDEO}",
+                    "--loop-file=no", "--loop-playlist=no",
                     f"--script={ROOT / 'controls.lua'}",
                     "--msg-level=all=warn", f"--input-ipc-client=fd://{fd}",
                 ],
@@ -134,7 +135,7 @@ def play(args):
     os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
     from pygame import Surface, font, image
 
-    for path in (VIDEO, PORTRAIT_VIDEO, PORTRAIT_VIDEO.with_suffix(".png")):
+    for path in (VIDEO, PORTRAIT_VIDEO, PORTRAIT_STILL):
         if not path.is_file():
             raise FileNotFoundError(path)
 
@@ -206,11 +207,23 @@ def play(args):
                 player.command("script-message-to", "controls", "toutbien-standby", *current)
                 overlay = current
 
+        portrait = True
+
         def show_standby():
             if waiting_for_voice:
                 stop_listening()
-            print("Standby", flush=True)
-            player.command("loadfile", standby_image, "replace")
+            path = str(PORTRAIT_STILL) if portrait else standby_image
+            player.command("stop")
+            player.command("loadfile", path, "replace")
+            print(f"Standby: {Path(path).name}", flush=True)
+
+        def start_video():
+            path = PORTRAIT_VIDEO if portrait else VIDEO
+            print(f"Video: {path.name}", flush=True)
+            update_standby("hidden")
+            player.playback_failed = False
+            player.command("loadfile", str(path), "replace")
+            player.command("set_property", "pause", False)
 
         show_standby()
         update_standby("idle")
@@ -227,6 +240,7 @@ def play(args):
         trigger_seconds = SENSOR_DEBOUNCE_SECONDS if args.beam else PIR_TRIGGER_SECONDS
         absent_since = None
         next_eof_check = 0
+        next_orientation_check = 0
         video_at = None
         standby_at = None
         changed_at = time.monotonic()
@@ -251,6 +265,18 @@ def play(args):
                 present = bool(sensor.pin.state)
 
             now = time.monotonic()
+            if now >= next_orientation_check:
+                next_orientation_check = now + 0.1
+                rotation = player.command("get_property", "video-rotate")
+                if rotation in (90, 180) and portrait != (rotation == 90):
+                    portrait = rotation == 90
+                    if video_playing:
+                        start_video()
+                        challenge_passed = False
+                        next_eof_check = now + 0.1
+                    elif standby_at is None:
+                        show_standby()
+
             if warming_up:
                 if now < deadline:
                     continue
@@ -282,10 +308,10 @@ def play(args):
                     print(f"GPIO17 = {int(stable)}.", flush=True)
                 if not stable:
                     absent_since = changed_at
-                    if waiting_for_voice or challenge_passed:
+                    if challenge_passed:
                         print(f"Reset na {RESET_SECONDS} seconden laag signaal.", flush=True)
 
-            if (waiting_for_voice or challenge_passed) and absent_since is not None and now - absent_since >= RESET_SECONDS:
+            if challenge_passed and not stable and absent_since is not None and now - absent_since >= RESET_SECONDS:
                 if triggered:
                     print("Klaar voor volgende detectie.", flush=True)
                 triggered = challenge_passed = False
@@ -303,16 +329,12 @@ def play(args):
                 absent_since = None
                 if new_detection and not triggered and standby_at is None:
                     triggered = True
-                    portrait = player.command("get_property", "video-rotate") == 90
                     video_at = now if portrait else now + READ_SECONDS
                     if not portrait:
                         print(f"Video start over {READ_SECONDS} seconden.", flush=True)
 
             if video_at is not None and now >= video_at:
-                print("Video", flush=True)
-                update_standby("hidden")
-                player.playback_failed = False
-                player.command("loadfile", str(VIDEO), "replace")
+                start_video()
                 video_playing = True
                 challenge_passed = False
                 video_at = None
@@ -335,8 +357,6 @@ def play(args):
                         mic_deadline = time.monotonic() + MIC_TIMEOUT_SECONDS
                         player.command("seek", MIC_PAUSE_SECONDS, "absolute+exact")
                         waiting_for_voice = True
-                        if not stable:
-                            absent_since = now
                         next_mic_update = now
                         show_mic_meter(0)
                         try:
@@ -351,6 +371,7 @@ def play(args):
                 show_standby()
                 video_playing = triggered = False
                 sensor_ready = False
+                video_at = None
                 rearm_seconds = SENSOR_DEBOUNCE_SECONDS if args.beam else PIR_REARM_SECONDS
                 print(f"Wacht op {rearm_seconds:g} s laag GPIO17-signaal.", flush=True)
                 changed_at = time.monotonic()
@@ -367,6 +388,7 @@ def play(args):
                     if passed:
                         stop_listening()
                         challenge_passed = True
+                        absent_since = None if stable else time.monotonic()
                         player.command("set_property", "pause", False)
                     elif level is not None and now >= next_mic_update:
                         next_mic_update = now + 0.04
