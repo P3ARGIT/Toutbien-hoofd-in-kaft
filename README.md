@@ -1,6 +1,6 @@
 # Toutbien expo-speler
 
-Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In portrait staat de video stil op het eerste frame. Na detectie speelt hij direct vanaf het begin, inclusief de countdown in de video. In landscape staat in standby de rode titel **sorry voor het ongemak sebiet** (#d61321) op een crèmekleurig scherm (#f3eadc). Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. In landscape verschijnt na detectie onder de titel **3**, **2** en **1**, elk één seconde. Daarna begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnt het stille standbyscherm opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. Als het sensorsignaal tijdens een lopende video 20 seconden wegblijft, stopt de video en verschijnt standby.
+Voor een Raspberry Pi 5 met Raspberry Pi OS 64-bit **met desktop**. In portrait staat de video stil op het eerste frame. Na detectie speelt hij direct vanaf het begin, inclusief de countdown in de video. In landscape staat in standby de rode titel **sorry voor het ongemak sebiet** (#d61321) op een crèmekleurig scherm (#f3eadc). Linksboven staat een **rood bolletje** bij een laag sensorsignaal en een **groen bolletje** bij een hoog signaal. In landscape verschijnt na detectie onder de titel **3**, **2** en **1**, elk één seconde. Daarna begint de productvideo vanaf het begin. Na afloop springt het scherm meteen naar zwart en blijft het drie seconden stil. Daarna verschijnt het stille standbyscherm opnieuw. Elke nieuwe sensorpuls in standby start de video weer vanaf het begin. De reset bij afwezigheid wordt actief vanaf de microfoonpauze.
 
 ## Aansluiten
 
@@ -71,3 +71,18 @@ Wacht na inschakelen ongeveer 60 seconden. Controleer eerst of je **GPIO17 = 0**
 Monteer een zender en ontvanger tegenover elkaar over de opening, op een plek waar het hoofd de straal onderbreekt. Gebruik een ontvanger met een **open-collector/open-drain-uitgang die bij een vrije straal naar GND trekt en bij onderbreking loslaat**. Verbind de uitgang met fysieke pin 11 en de massa van de ontvanger met pin 6. Voed zender en ontvanger volgens hun eigen specificaties. De Pi trekt de signaallijn intern naar 3,3 V. Controleer vóór aansluiten dat de ontvanger geen hogere spanning op de lijn zet, ook via een interne pull-up.
 
 Installeer vanuit de projectmap met **bash install.sh --beam** en herstart. In deze stand start de video zodra de onderbreking ongeveer 120 ms stabiel is. De reset volgt na 20 seconden met een vrije straal. De lichtsluis blijft een stil hoofd detecteren zolang dat de straal onderbreekt.
+
+
+## Microfoonversie
+
+Deze branch pauzeert op **0:22**. De meter toont het niveau van de JBL Quantum Stream Talk. Voordat de video verder speelt, moet de detector ongeveer 160 ms spraak op of boven de ingestelde drempel herkennen. Het geluid wordt alleen tijdens de uitdaging verwerkt, in het geheugen. Er wordt geen opname opgeslagen. De video bereikt de microfoonpauze ook als de PIR intussen laag is. Vanaf de pauze keert de app na 20 seconden zonder een actief PIR-signaal terug naar standby.
+
+Selecteer **AV Jack** als uitgang voor de Trust-luidsprekers. De app zoekt de JBL bij de ingangen in `pactl list short sources`.
+
+Zonder kalibratie werkt het spel in **DEMO** met een drempel van −24 dBFS. Voor een drempel van **80 dB SPL** gebruik je een referentiemeting op de positie van de JBL. Houd de JBL-gain en de invoervolumeregelaar daarna gelijk.
+
+1. Sluit Toutbien af en start de niveautest met `~/.local/share/toutbien/mic-venv/bin/python ~/.local/share/toutbien/player.py --mic-level`.
+2. Gebruik een stabiel referentiesignaal met bekend ongewogen geluidsniveau op de positie van de JBL. Lees de stabiele dBFS-waarde af. De offset is het referentieniveau min die dBFS-waarde. Bij 80 dB SPL en −24 dBFS is de offset bijvoorbeeld 104.
+3. Stop de test met Ctrl+C. Bewaar de gemeten offset als één getal in `${XDG_CONFIG_HOME:-$HOME/.config}/toutbien-mic-offset`. Open Toutbien opnieuw. Dit geeft een schatting van het geluidsniveau voor de speltrigger.
+
+De stille reserveversie staat op `main`. Sluit de speler en voer `git switch main` en `bash install.sh` uit om die versie terug te zetten.

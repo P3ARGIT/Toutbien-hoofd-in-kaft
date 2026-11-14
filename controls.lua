@@ -70,8 +70,10 @@ mp.add_hook("on_load", 50, function()
     end
 end)
 
+local meter_state
+
 local function set_orientation(use_portrait)
-    if portrait == use_portrait then
+    if meter_state or portrait == use_portrait then
         return
     end
     portrait = use_portrait
@@ -93,3 +95,52 @@ for _, key in ipairs({"l", "L"}) do
         set_orientation(false)
     end)
 end
+
+local meter = mp.create_osd_overlay("ass-events")
+meter.res_x, meter.res_y = 1280, 720
+
+local function draw_meter()
+    if not meter_state then
+        meter:remove()
+        return
+    end
+    local fraction, level, target = meter_state[1], meter_state[2], meter_state[3]
+    local width = math.floor(440 * fraction)
+    local function text(x, y, size, label)
+        return ([[{\an5\pos(%d,%d)\frz%d\fs%d\b1\bord3\shad0}%s]]):format(
+            x, y, portrait and 270 or 180, size, label
+        )
+    end
+    local function bar(length, color)
+        local x, y, w, h = 480, 130, length, 22
+        if portrait then
+            x, y, w, h = 190, 140, 22, length
+        else
+            x = 860 - length
+        end
+        return ([[{\an7\pos(%d,%d)\bord1\shad0\1c&H%s&\p1}m 0 0 l %d 0 %d %d 0 %d{\p0}]]):format(
+            x, y, color, w, w, h, h
+        )
+    end
+    local prompt = target == "MICROPHONE UNAVAILABLE" and "Microphone unavailable" or "Speak into the microphone"
+    local details = target == "MICROPHONE UNAVAILABLE" and "" or level .. "  /  " .. target
+    local parts = {
+        portrait and text(325, 360, 42, prompt) or text(640, 255, 42, prompt),
+        portrait and text(255, 360, 30, details) or text(640, 188, 30, details),
+        bar(440, "555555"),
+    }
+    if width > 0 then
+        parts[#parts + 1] = bar(width, "5EC522")
+    end
+    meter.data = table.concat(parts, "\n")
+    meter:update()
+end
+
+mp.register_script_message("toutbien-mic", function(fraction, level, target)
+    if fraction == "hidden" then
+        meter_state = nil
+    else
+        meter_state = {tonumber(fraction), level, target}
+    end
+    draw_meter()
+end)

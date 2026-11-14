@@ -19,9 +19,11 @@ autostart_dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 
 sudo apt-get update
-sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs
+sudo apt-get install -y mpv python3-pygame python3-gpiozero python3-lgpio wireplumber xdg-user-dirs pulseaudio-utils python3-venv
 
 install -d "$app_dir/video" "$autostart_dir" "$applications_dir"
+python3 -m venv --system-site-packages "$app_dir/mic-venv"
+"$app_dir/mic-venv/bin/python" -m pip install 'webrtcvad-wheels==2.0.14'
 video_copy=""
 trap 'rm -f -- "$video_copy"' EXIT
 for video in productvideo.mp4 productvideoPortrait.mp4; do
@@ -31,6 +33,7 @@ for video in productvideo.mp4 productvideoPortrait.mp4; do
 done
 
 install -m 644 "$project_dir/player.py" "$app_dir/player.py"
+install -m 644 "$project_dir/microphone.py" "$app_dir/microphone.py"
 install -m 644 "$project_dir/controls.lua" "$app_dir/controls.lua"
 
 cat > "$app_dir/start.sh" <<EOF
@@ -38,7 +41,8 @@ cat > "$app_dir/start.sh" <<EOF
 set -euo pipefail
 state_dir="\${XDG_STATE_HOME:-\$HOME/.local/state}/toutbien"
 mkdir -p "\$state_dir"
-exec /usr/bin/python3 "\$(dirname -- "\${BASH_SOURCE[0]}")/player.py"$mode >> "\$state_dir/player.log" 2>&1
+app_dir="\$(dirname -- "\${BASH_SOURCE[0]}")"
+exec "\$app_dir/mic-venv/bin/python" "\$app_dir/player.py"$mode >> "\$state_dir/player.log" 2>&1
 EOF
 chmod 755 "$app_dir/start.sh"
 

@@ -13,6 +13,8 @@ import sys
 import tempfile
 import time
 
+from microphone import DEMO_THRESHOLD, TARGET_SPL, Microphone, monitor
+
 ROOT = Path(__file__).resolve().parent
 VIDEO = ROOT / "video" / "productvideo.mp4"
 PORTRAIT_VIDEO = VIDEO.with_name("productvideoPortrait.mp4")
@@ -23,6 +25,8 @@ RESET_SECONDS = 20
 PIR_WARMUP_SECONDS = 60
 READ_SECONDS = 3
 BLACK_SECONDS = 3
+MIC_PAUSE_SECONDS = 22
+MIC_CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "toutbien-mic-offset"
 
 
 class PlayerClosed(Exception):
@@ -72,8 +76,8 @@ class Player:
                     print(f"mpv kon het bestand niet afspelen: {message.get('file_error', message)}", flush=True)
                     self.playback_failed = True
                 if message.get("request_id") == 1:
-                    if args == ("get_property", "eof-reached") and message["error"] == "property unavailable":
-                        return False
+                    if args[0] == "get_property" and message["error"] == "property unavailable":
+                        return None
                     if message["error"] != "success":
                         raise RuntimeError(f"mpv {args[0]}: {message['error']}")
                     return message.get("data")
@@ -168,6 +172,27 @@ def play(args):
         image.save(screen, standby_image)
 
         player = Player(resources)
+        mic = Microphone()
+        resources.callback(mic.close)
+        offset = float(MIC_CONFIG.read_text()) if MIC_CONFIG.is_file() else None
+        if offset is not None and not math.isfinite(offset):
+            raise ValueError("Invalid microphone calibration offset.")
+        threshold = DEMO_THRESHOLD if offset is None else TARGET_SPL - offset
+        waiting_for_voice = challenge_passed = False
+        next_mic_update = 0
+
+        def show_mic_meter(level):
+            if level is None:
+                player.command("script-message-to", "controls", "toutbien-mic", "hidden")
+                return
+            player.command("script-message-to", "controls", "toutbien-mic", *level)
+
+        def stop_listening():
+            nonlocal waiting_for_voice
+            mic.close()
+            waiting_for_voice = False
+            show_mic_meter(None)
+
         overlay = None
 
         def update_standby(status, number=""):
@@ -178,6 +203,8 @@ def play(args):
                 overlay = current
 
         def show_standby():
+            if waiting_for_voice:
+                stop_listening()
             print("Standby", flush=True)
             player.command("loadfile", standby_image, "replace")
 
@@ -243,13 +270,13 @@ def play(args):
                     print(f"GPIO17 = {int(stable)}.", flush=True)
                 if not stable:
                     absent_since = changed_at
-                    if triggered:
+                    if waiting_for_voice or challenge_passed:
                         print(f"Reset na {RESET_SECONDS} seconden laag signaal.", flush=True)
 
-            if absent_since is not None and now - absent_since >= RESET_SECONDS:
+            if (waiting_for_voice or challenge_passed) and absent_since is not None and now - absent_since >= RESET_SECONDS:
                 if triggered:
                     print("Klaar voor volgende detectie.", flush=True)
-                triggered = False
+                triggered = challenge_passed = False
                 video_at = None
                 absent_since = None
                 if video_playing:
@@ -275,16 +302,55 @@ def play(args):
                 player.playback_failed = False
                 player.command("loadfile", str(VIDEO), "replace")
                 video_playing = True
+                challenge_passed = False
                 video_at = None
                 next_eof_check = now + 0.1
 
             if video_playing and now >= next_eof_check:
                 next_eof_check = now + 0.1
                 if player.command("get_property", "eof-reached") or player.playback_failed:
+                    if waiting_for_voice:
+                        stop_listening()
                     player.command("loadfile", black_image, "replace")
                     standby_at = time.monotonic() + BLACK_SECONDS
                     video_playing = False
                     triggered = False
+
+                elif not challenge_passed and not waiting_for_voice:
+                    position = player.command("get_property", "time-pos")
+                    if position is not None and position >= MIC_PAUSE_SECONDS:
+                        player.command("set_property", "pause", True)
+                        player.command("seek", MIC_PAUSE_SECONDS, "absolute+exact")
+                        waiting_for_voice = True
+                        if not stable:
+                            absent_since = now
+                        next_mic_update = now
+                        show_mic_meter(("0", "--", "80 dB SPL" if offset is not None else "DEMO"))
+                        try:
+                            mic.start()
+                        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+                            print(f"Microphone: {error}", flush=True)
+                            mic.close()
+                            show_mic_meter(("0", "--", "MICROPHONE UNAVAILABLE"))
+
+            if waiting_for_voice and mic.process is not None:
+                try:
+                    level, passed = mic.measure(threshold)
+                except (OSError, RuntimeError) as error:
+                    print(f"Microphone: {error}", flush=True)
+                    mic.close()
+                    show_mic_meter(("0", "--", "MICROPHONE UNAVAILABLE"))
+                else:
+                    if passed:
+                        stop_listening()
+                        challenge_passed = True
+                        player.command("set_property", "pause", False)
+                    elif level is not None and now >= next_mic_update:
+                        next_mic_update = now + 0.08
+                        fraction = min(1, max(0, (level - threshold + 35) / 35))
+                        label = f"{level + offset:.0f} dB SPL" if offset is not None else f"{level:.0f} dBFS"
+                        goal = "80 dB SPL" if offset is not None else "DEMO"
+                        show_mic_meter((f"{fraction:.3f}", label, goal))
 
             if not video_playing and standby_at is None:
                 number = ""
@@ -303,9 +369,12 @@ if __name__ == "__main__":
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--test", action="store_true", help="Test met Enter in de terminal.")
     modes.add_argument("--sensor-test", action="store_true", help="Toon het ruwe GPIO17-signaal.")
+    modes.add_argument("--mic-level", action="store_true", help="Toon het JBL-niveau in dBFS.")
     args = parser.parse_args()
     try:
-        if args.sensor_test:
+        if args.mic_level:
+            monitor()
+        elif args.sensor_test:
             monitor_sensor(args.beam)
         else:
             play(args)
